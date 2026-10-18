@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+.env*.local
+.env
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# Admin panel data: SQLite database and uploaded images (back this folder up)
+/data
+
+# Admin panel backups (npm run backup)
+/backups

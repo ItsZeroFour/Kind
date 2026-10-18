@@ -1,0 +1,267 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f5f8f6;
+  --surface: #ffffff;
+  --surface-2: #e9f1ec;
+  --ink: #0f231b;
+  --muted: #4a5e55;
+  --line: #d3dfd8;
+  --brand: #0d3e2e;
+  --brand-2: #14583f;
+  --leaf: #14583f;
+  --on-brand: #f2f7f4;
+  --on-brand-muted: #b9d0c4;
+  --peach: #ffb08c;
+  --dot: #e8622a;
+  --cta: #c2481b;
+  --cta-hover: #a33b14;
+  --on-cta: #ffffff;
+  --ok: #1e7a4f;
+  --star: #e0a100;
+  --shadow: 0 1px 2px rgb(13 62 46 / 0.06), 0 8px 24px rgb(13 62 46 / 0.07);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1511;
+    --surface: #11201a;
+    --surface-2: #162a22;
+    --ink: #e5eee9;
+    --muted: #a3b6ac;
+    --line: #25392f;
+    --brand: #0e2f24;
+    --brand-2: #174a37;
+    --leaf: #6cc79a;
+    --on-brand: #eef5f1;
+    --on-brand-muted: #a9c3b6;
+    --cta: #c9501f;
+    --cta-hover: #de6331;
+    --ok: #5cc48f;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1511;
+  --surface: #11201a;
+  --surface-2: #162a22;
+  --ink: #e5eee9;
+  --muted: #a3b6ac;
+  --line: #25392f;
+  --brand: #0e2f24;
+  --brand-2: #174a37;
+  --leaf: #6cc79a;
+  --on-brand: #eef5f1;
+  --on-brand-muted: #a9c3b6;
+  --cta: #c9501f;
+  --cta-hover: #de6331;
+  --ok: #5cc48f;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-bricolage), var(--font-figtree), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, Menlo, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-leaf: var(--leaf);
+  --color-on-brand: var(--on-brand);
+  --color-on-brand-muted: var(--on-brand-muted);
+  --color-peach: var(--peach);
+  --color-dot: var(--dot);
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-on-cta: var(--on-cta);
+  --color-ok: var(--ok);
+  --color-star: var(--star);
+
+  --shadow-soft: var(--shadow);
+}
+
+@theme {
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg font-sans text-base/relaxed text-ink antialiased;
+    overflow-x: hidden;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-bold tracking-[-0.01em] text-ink;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 3px solid var(--dot);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-[1200px] px-5;
+  }
+  .section {
+    @apply py-14 sm:py-16 lg:py-20;
+  }
+  .section-alt {
+    @apply bg-surface-2;
+  }
+  .on-brand {
+    @apply bg-brand text-on-brand;
+  }
+  .on-brand h1,
+  .on-brand h2,
+  .on-brand h3 {
+    @apply text-on-brand;
+  }
+  .on-brand .card-raised {
+    @apply text-ink;
+  }
+  .on-brand .card-raised :is(h1, h2, h3) {
+    @apply text-ink;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[0.78rem] font-bold tracking-[0.12em] text-cta uppercase;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply size-[7px] shrink-0 rounded-full bg-dot;
+  }
+  .on-brand .eyebrow {
+    @apply text-peach;
+  }
+  .h-section {
+    @apply mt-3 text-[clamp(1.6rem,1.2rem+1.6vw,2.4rem)];
+  }
+  .lead-text {
+    @apply mt-4 max-w-[62ch] text-lg text-muted;
+  }
+  .on-brand .lead-text {
+    @apply text-on-brand-muted;
+  }
+
+  .btn {
+    @apply inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-transparent px-[22px] py-3 text-base font-bold no-underline transition-colors duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60;
+  }
+  .btn svg {
+    @apply size-[18px] shrink-0;
+  }
+  .btn-cta,
+  .btn-primary {
+    @apply bg-cta text-on-cta hover:bg-cta-hover;
+  }
+  .btn-ghost,
+  .btn-outline {
+    @apply border-current bg-transparent text-leaf hover:bg-[rgb(127_127_127/0.12)];
+  }
+  .on-brand .btn-ghost,
+  .btn-ghost-light {
+    @apply border-current bg-transparent text-on-brand hover:bg-white/10;
+  }
+  .btn-dark {
+    @apply bg-brand text-on-brand hover:bg-brand-2;
+  }
+  .btn-light {
+    @apply bg-white text-[#7a2c0e] hover:bg-[#fff1ea];
+  }
+  .btn-sm {
+    @apply min-h-10 px-4 py-2 text-[0.92rem];
+  }
+
+  .card {
+    @apply min-w-0 rounded-[14px] border border-line bg-surface p-[22px];
+  }
+  .card-raised {
+    @apply rounded-[18px] border border-line bg-surface p-6 shadow-soft;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3 py-1.5 text-[0.88rem] font-semibold;
+  }
+  .chip svg {
+    @apply size-4 text-peach;
+  }
+
+  .pill {
+    @apply inline-flex items-center rounded-full bg-cta px-3 py-1 text-[0.72rem] leading-none font-bold tracking-[0.06em] whitespace-nowrap text-on-cta uppercase;
+  }
+  .pill-soft {
+    @apply bg-cta/12 text-cta;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-[0.85rem] font-semibold text-ink;
+  }
+  .field {
+    @apply block min-h-12 w-full rounded-[10px] border border-line bg-bg px-3 py-2.5 text-base text-ink transition placeholder:text-muted/60 focus:outline-2 focus:outline-offset-1 focus:outline-leaf;
+  }
+  .field[aria-invalid="true"] {
+    @apply border-cta;
+  }
+
+  .prose-kind p {
+    @apply mt-4 leading-relaxed text-ink first:mt-0;
+  }
+
+  .tile {
+    @apply flex min-h-[60px] items-center gap-3 rounded-[14px] border border-line bg-surface px-4 py-3.5 font-semibold no-underline transition hover:-translate-y-px hover:border-leaf;
+  }
+  .tile-ic {
+    @apply grid size-[38px] shrink-0 place-items-center rounded-[10px] bg-surface-2 text-leaf;
+  }
+  .tile-ic svg {
+    @apply size-5;
+  }
+}
+
+.admin {
+  --font-figtree: var(--font-manrope);
+  --font-bricolage: var(--font-manrope);
+}
+.admin h1,
+.admin h2,
+.admin h3 {
+  letter-spacing: -0.02em;
+}

@@ -1,0 +1,22 @@
+# systemd unit for the site. Install:
+#   sudo cp deploy/kind.service /etc/systemd/system/kind.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now kind
+# Logs: journalctl -u kind -f
+# Secrets and settings: /var/www/kind/.env.production.local (Next.js reads it on start)
+[Unit]
+Description=Kind Appliance Repair website
+After=network.target
+
+[Service]
+Type=simple
+User=kind
+WorkingDirectory=/var/www/kind
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DATA_DIR=/var/www/kind/data
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
