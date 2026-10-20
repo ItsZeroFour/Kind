@@ -257,7 +257,7 @@ function ImageField({
             ref={input}
             id={id}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+            accept="image/jpeg,image/png,image/gif"
             className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0];

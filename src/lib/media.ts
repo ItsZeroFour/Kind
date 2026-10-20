@@ -2,13 +2,14 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import sharp, { type Sharp } from "sharp";
+import { Jimp } from "jimp";
 import { getDb, uploadsDir } from "./db";
 import { sections, type Field } from "@/content/model";
 import { getContent } from "@/content/store";
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
-export const acceptedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
+export const acceptedTypes = ["image/jpeg", "image/png", "image/gif"];
+const MAX_SIDE = 2400;
 
 export type MediaItem = {
   id: number;
@@ -21,24 +22,30 @@ export type MediaItem = {
 };
 
 export async function saveUpload(input: Buffer, originalName: string): Promise<MediaItem> {
-  let img: Sharp;
+  // Pure-JS decoding (no native/WASM code): the VPS CPU lacks SSE4/WASM SIMD. EXIF orientation is applied on read.
+  let img: Awaited<ReturnType<typeof Jimp.fromBuffer>>;
   try {
-    img = sharp(input, { failOn: "error" }).rotate();
-    await img.metadata();
+    img = await Jimp.fromBuffer(input);
   } catch {
-    throw new Error("Not an image, or the format is not supported (JPG, PNG, WebP, AVIF or GIF)");
+    throw new Error("Not an image, or the format is not supported (JPG, PNG or GIF)");
   }
-  const { data, info } = await img
-    .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 84 })
-    .toBuffer({ resolveWithObject: true });
+  const scale = Math.min(1, MAX_SIDE / img.width, MAX_SIDE / img.height);
+  if (scale < 1) img.resize({ w: Math.round(img.width * scale), h: Math.round(img.height * scale) });
 
-  const file = `${Date.now().toString(36)}-${randomBytes(6).toString("hex")}.webp`;
+  // jimp has no WebP encoder: keep transparency as PNG, everything else becomes JPEG.
+  const { data: px } = img.bitmap;
+  let hasAlpha = false;
+  for (let i = 3; i < px.length; i += 4) if (px[i] < 255) { hasAlpha = true; break; }
+  const [mime, ext] = hasAlpha ? (["image/png", "png"] as const) : (["image/jpeg", "jpg"] as const);
+  const data = mime === "image/png" ? await img.getBuffer(mime) : await img.getBuffer(mime, { quality: 84 });
+  const info = { width: img.width, height: img.height };
+
+  const file = `${Date.now().toString(36)}-${randomBytes(6).toString("hex")}.${ext}`;
   await writeFile(path.join(uploadsDir, file), data);
   const name = originalName.slice(0, 200);
   const res = getDb()
-    .prepare("INSERT INTO media (file, original_name, mime, width, height, size) VALUES (?, ?, 'image/webp', ?, ?, ?)")
-    .run(file, name, info.width, info.height, data.length);
+    .prepare("INSERT INTO media (file, original_name, mime, width, height, size) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(file, name, mime, info.width, info.height, data.length);
   return {
     id: Number(res.lastInsertRowid),
     url: `/uploads/${file}`,

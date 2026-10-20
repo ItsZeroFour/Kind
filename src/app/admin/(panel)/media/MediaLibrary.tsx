@@ -53,7 +53,7 @@ export function MediaLibrary({ initial }: { initial: Item[] }) {
           ref={input}
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+          accept="image/jpeg,image/png,image/gif"
           className="sr-only"
           id="media-upload"
           onChange={(e) => e.target.files?.length && upload(e.target.files)}
@@ -62,7 +62,7 @@ export function MediaLibrary({ initial }: { initial: Item[] }) {
           {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
           {busy ? `Uploading… ${busy} left` : "Choose files"}
         </label>
-        <p className="text-[0.8rem] text-muted">JPG, PNG, WebP, AVIF or GIF, up to 15 MB</p>
+        <p className="text-[0.8rem] text-muted">JPG, PNG or GIF, up to 15 MB</p>
         {message && (
           <p className={`text-[0.9rem] font-semibold ${message.kind === "ok" ? "text-ok" : "text-cta"}`} role="status">
             {message.text}
