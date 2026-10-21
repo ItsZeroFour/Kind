@@ -2,7 +2,7 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { hashPassword } from "./password";
+import { hashPassword, verifyPassword } from "./password";
 
 export const dataDir = path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR || "data");
 export const uploadsDir = path.join(dataDir, "uploads");
@@ -63,6 +63,10 @@ const migrations = [
    );
    CREATE INDEX IF NOT EXISTS leads_created ON leads (created_at DESC);
    CREATE INDEX IF NOT EXISTS leads_status ON leads (status, created_at DESC);`,
+  `CREATE TABLE IF NOT EXISTS meta (
+     key TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+   );`,
 ];
 
 function migrate(db: DatabaseSync) {
@@ -83,16 +87,42 @@ function migrate(db: DatabaseSync) {
   }
 }
 
-function seedAdmin(db: DatabaseSync) {
+// Keeps the admin from ADMIN_EMAIL / ADMIN_PASSWORD in sync with the env. Only acts when the env values
+// differ from the ones applied last time, so a password changed in the panel survives restarts.
+function syncEnvAdmin(db: DatabaseSync) {
   const email = process.env.ADMIN_EMAIL?.trim();
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password) return;
-  const { n } = db.prepare("SELECT count(*) AS n FROM users").get() as { n: number };
-  if (n > 0) return;
-  db.prepare(
-    `INSERT OR IGNORE INTO users (email, name, password_hash)
-     SELECT ?, 'Admin', ? WHERE NOT EXISTS (SELECT 1 FROM users)`,
-  ).run(email, hashPassword(password));
+
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'env_admin'").get() as { value: string } | undefined;
+  const prev = row ? (JSON.parse(row.value) as { email: string; hash: string }) : undefined;
+  if (prev && prev.email.toLowerCase() === email.toLowerCase() && verifyPassword(password, prev.hash)) return;
+
+  const idOf = (e: string) => (db.prepare("SELECT id FROM users WHERE email = ?").get(e) as { id: number } | undefined)?.id;
+  const onlyUser = () => {
+    const rows = db.prepare("SELECT id FROM users LIMIT 2").all() as { id: number }[];
+    return rows.length === 1 ? rows[0].id : undefined;
+  };
+  // Same email → that user; otherwise the user created from the previous env email
+  // (before this sync existed: the single admin, if there is exactly one).
+  const target = idOf(email) ?? (prev ? idOf(prev.email) : onlyUser());
+
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    if (target) {
+      db.prepare("UPDATE users SET email = ?, password_hash = ? WHERE id = ?").run(email, hashPassword(password), target);
+      db.prepare("DELETE FROM sessions WHERE user_id = ?").run(target);
+    } else {
+      db.prepare("INSERT INTO users (email, name, password_hash) VALUES (?, 'Admin', ?)").run(email, hashPassword(password));
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('env_admin', ?)").run(
+      JSON.stringify({ email, hash: hashPassword(password) }),
+    );
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
 }
 
 function open() {
@@ -100,7 +130,7 @@ function open() {
   const db = new DatabaseSync(path.join(dataDir, "kind.db"), { timeout: 5000 });
   db.exec("PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON;");
   migrate(db);
-  seedAdmin(db);
+  syncEnvAdmin(db);
   return db;
 }
 
