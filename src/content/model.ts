@@ -796,7 +796,7 @@ export const sections: SectionDef[] = [
           { kind: "image", key: "heroBg.desktop", label: "Computer", shape: "wide", help: "Landscape, about 2400×1680. The right side stays lighter" },
           { kind: "image", key: "heroBg.mobile", label: "Phone", shape: "tall", help: "Portrait, about 1200×1600" },
           { kind: "number", key: "heroBg.shadeDesktop", label: "Darkening on computers, %", min: 30, max: 90, help: "About 60. Sets the photo side; behind the text it is always at least 88% so small text stays readable" },
-          { kind: "number", key: "heroBg.shadeMobile", label: "Darkening on phones, %", min: 50, max: 90, help: "About 70. Sets the lower part; behind the text it is always at least 88%" },
+          { kind: "number", key: "heroBg.shadeMobile", label: "Darkening on phones, %", min: 50, max: 90, help: "About 70. Sets the part with the dog; the top with the heading is 15 points darker. Never below 70% so the white text stays readable" },
         ],
       },
     ],
