@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAreas, getPublicSite, getServices, getSite } from "@/content/store";
+import { getAreas, getPublicSite, getServices, getSite, hasReviews } from "@/content/store";
 import { Logo } from "@/components/ui/Logo";
 import { PhoneLink } from "@/components/ui/PhoneLink";
 
@@ -83,7 +83,7 @@ export function Footer() {
           </Col>
 
           <Col title="Company">
-            {company.map(([href, label]) => (
+            {company.filter(([href]) => href !== "/reviews" || hasReviews()).map(([href, label]) => (
               <li key={href}>
                 <Link href={href} className={link}>
                   {label}

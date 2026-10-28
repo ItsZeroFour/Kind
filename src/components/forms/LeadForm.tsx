@@ -14,6 +14,7 @@ import {
   Microwave,
   Refrigerator,
   Snowflake,
+  Sparkles,
   WashingMachine,
   Wind,
   Wrench,
@@ -43,6 +44,7 @@ const applianceIcons: Record<string, LucideIcon> = {
   microwave: Microwave,
   icemaker: Box,
   commercial: Building2,
+  kit: Sparkles,
   other: Wrench,
 };
 
@@ -79,7 +81,6 @@ export function LeadForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [phone, setPhone] = useState("");
   const [appliance, setAppliance] = useState(defaultAppliance);
-  const [customerType, setCustomerType] = useState(defaultCustomerType);
   const started = useRef(false);
   const compact = variant === "compact";
   // Visitor's local date (toISOString is UTC, which is already "tomorrow" on Oregon evenings).
@@ -222,8 +223,7 @@ export function LeadForm({
       <p className="flex items-start gap-2 text-[0.8rem] leading-relaxed text-muted">
         <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         <span>
-          ${customerType === "commercial" ? site.pricing.commercialServiceCall : site.pricing.serviceCall} service call
-          {site.pricing.creditedOnRepair && ", credited toward the repair"}.{f.note && ` ${f.note}`}
+          {[f.creditNote, f.note].filter(Boolean).join(" ")}
           {f.callPrompt && (
             <>
               {" "}
@@ -284,6 +284,14 @@ export function LeadForm({
               ))}
             </select>
           </div>
+          {f.compactComment && (
+            <div className="min-[420px]:col-span-2">
+              <label htmlFor={id("problem")} className="field-label">
+                What&apos;s going on? <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <textarea id={id("problem")} name="problem" rows={2} className="field resize-y" placeholder="Noises, error codes, leaks…" />
+            </div>
+          )}
         </div>
         {footer}
       </form>
@@ -334,7 +342,6 @@ export function LeadForm({
                     name="customerType"
                     value={t}
                     defaultChecked={t === defaultCustomerType}
-                    onChange={() => setCustomerType(t)}
                     className="peer sr-only"
                   />
                   <span className={`${choice} min-h-12 items-center justify-center px-3 text-[0.95rem] font-semibold`}>

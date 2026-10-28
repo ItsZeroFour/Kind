@@ -1,6 +1,7 @@
 import "server-only";
 import { getDb } from "./db";
 import type { Lead } from "./leads";
+import { describeForm, describeSource } from "./lead-labels";
 
 export const leadStatuses = [
   { value: "new", label: "New" },
@@ -26,6 +27,9 @@ export type LeadRow = {
   urgency: string | null;
   problem: string | null;
   note: string;
+  /** Form and traffic source in words */
+  formLabel: string;
+  channel: string;
 };
 
 export type LeadDetail = LeadRow & { lead: Lead; delivery: Delivery | null; updatedAt: string | null; updatedBy: string | null };
@@ -53,19 +57,24 @@ type DbRow = {
   note: string;
 };
 
-const toRow = (r: DbRow): LeadRow => ({
-  id: r.id,
-  createdAt: r.created_at,
-  status: isLeadStatus(r.status) ? r.status : "new",
-  name: r.name,
-  phone: r.phone,
-  email: r.email,
-  appliance: r.appliance,
-  zip: r.zip,
-  urgency: r.urgency,
-  problem: parse<Lead>(r.data)?.problem ?? null,
-  note: r.note,
-});
+const toRow = (r: DbRow): LeadRow => {
+  const data = parse<Lead>(r.data);
+  return {
+    id: r.id,
+    createdAt: r.created_at,
+    status: isLeadStatus(r.status) ? r.status : "new",
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    appliance: r.appliance,
+    zip: r.zip,
+    urgency: r.urgency,
+    problem: data?.problem ?? null,
+    note: r.note,
+    formLabel: data?.formLabel ?? describeForm(data?.formId, data?.pageUrl),
+    channel: data?.channel ?? describeSource(data?.attribution),
+  };
+};
 
 export function saveLead(lead: Lead) {
   getDb()

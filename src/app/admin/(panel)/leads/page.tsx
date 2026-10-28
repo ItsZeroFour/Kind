@@ -122,6 +122,9 @@ export default async function LeadsPage({ searchParams }: Props) {
                     {[l.appliance, l.zip && `ZIP ${l.zip}`].filter(Boolean).join(" · ") || "No appliance given"}
                   </span>
                   {l.problem && <span className="mt-1 line-clamp-1 block text-[0.88rem]">{l.problem}</span>}
+                  <span className="mt-1 block text-[0.8rem] text-muted">
+                    {l.channel} · {l.formLabel}
+                  </span>
                   {l.note && <span className="mt-1 line-clamp-1 block text-[0.82rem] text-leaf">Note: {l.note}</span>}
                 </Link>
                 <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">

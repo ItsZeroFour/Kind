@@ -20,7 +20,7 @@ import {
   Wind,
   type LucideProps,
 } from "lucide-react";
-import { fill, getPrices, getServices, getSite } from "@/content/store";
+import { fill, getContent, getPrices, getServices, getSite, isMaintenance, kitHref } from "@/content/store";
 import { fromPrice, usd, type PriceCategory, type PriceIcon as PriceIconName } from "@/content/prices";
 import type { Service } from "@/content/services";
 import { TrackedLink } from "@/components/ui/TrackedLink";
@@ -70,7 +70,18 @@ function Note({ text }: { text: string }) {
 }
 
 /** A card with one appliance's price list */
-export function PriceCard({ category, service, headingLevel = 3 }: { category: PriceCategory; service?: Service; headingLevel?: 2 | 3 }) {
+export function PriceCard({
+  category,
+  service,
+  book,
+  headingLevel = 3,
+}: {
+  category: PriceCategory;
+  service?: Service;
+  /** A “Book this service” button under the card (maintenance kits on service pages) */
+  book?: { href: string; label: string; location: string };
+  headingLevel?: 2 | 3;
+}) {
   const from = fromPrice(category);
   const H = `h${headingLevel}` as "h2" | "h3";
   return (
@@ -116,11 +127,19 @@ export function PriceCard({ category, service, headingLevel = 3 }: { category: P
           About {service.name.toLowerCase()} <ArrowRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden />
         </Link>
       )}
+      {book && (
+        <div className="border-t border-line px-5 py-4 sm:px-6">
+          <TrackedLink href={book.href} cta="book_service" location={book.location} className="btn btn-cta w-full">
+            {book.label} <ArrowRight aria-hidden />
+          </TrackedLink>
+        </div>
+      )}
     </article>
   );
 }
 
 function PackageCard({ category }: { category: PriceCategory }) {
+  const t = getPrices();
   const it = category.items[0];
   if (!it) return null;
   const featured = Boolean(it.note);
@@ -152,12 +171,12 @@ function PackageCard({ category }: { category: PriceCategory }) {
       )}
       <div className="min-h-7 flex-1" aria-hidden />
       <TrackedLink
-        href="/book"
+        href={kitHref(category.title, "pricing")}
         cta="book_service"
         location={`pricing_${category.slug}`}
         className={`btn w-full ${featured ? "btn-cta" : "btn-ghost"}`}
       >
-        Book this service
+        {t.packageButton}
       </TrackedLink>
     </article>
   );
@@ -345,18 +364,25 @@ export function ServicePrices({ service }: { service: Service }) {
     .sort((a, b) => Number(a.segment === "maintenance") - Number(b.segment === "maintenance"));
   if (!cats.length) return null;
   const vars = { service: service.name, appliance: service.appliance };
+  const m = isMaintenance(service) ? getContent().pages.maintenance : null;
+  const title = m ? m.pricesTitle : t.serviceBlockTitle;
+  const intro = m ? m.pricesIntro : t.serviceBlockIntro;
+  const book = (c: PriceCategory) =>
+    c.segment === "maintenance"
+      ? { href: kitHref(c.title, `services/${service.slug}`), label: t.packageButton, location: `service_${service.slug}_${c.slug}` }
+      : undefined;
   return (
     <section className="section section-alt">
       <div className="container-x">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <SectionHeader eyebrow="Pricing" title={fill(t.serviceBlockTitle, site, vars)} intro={fill(t.serviceBlockIntro, site, vars)} />
+          <SectionHeader eyebrow="Pricing" title={fill(title, site, vars)} intro={intro ? fill(intro, site, vars) : undefined} />
           <Link href="/pricing" className="inline-flex items-center gap-1.5 font-bold text-leaf no-underline hover:text-cta">
-            Full price list <ArrowRight className="size-4" aria-hidden />
+            {t.serviceBlockLink} <ArrowRight className="size-4" aria-hidden />
           </Link>
         </div>
         <div className={`mt-8 gap-5 ${cats.length > 1 ? "md:columns-2" : "max-w-2xl"}`}>
           {cats.map((c) => (
-            <PriceCard key={c.slug} category={c} />
+            <PriceCard key={c.slug} category={c} book={book(c)} />
           ))}
         </div>
       </div>

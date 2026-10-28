@@ -3,29 +3,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Mail, MessageSquare, Phone } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getLead } from "@/lib/lead-store";
-import type { Attribution, Touch } from "@/lib/tracking";
+import type { Attribution } from "@/lib/tracking";
+import { campaignTags, describeForm, describeTouch } from "@/lib/lead-labels";
 import { StatusBadge, UrgencyBadge, fmtLeadDate, leadPhone, timeAgo, urgencyLabel } from "../../../_components/lead-ui";
 import { LeadControls } from "./LeadControls";
 
 type Props = { params: Promise<{ id: string }> };
 
 export const metadata = { title: "Lead" };
-
-function describeTouch(t: Touch | undefined) {
-  if (!t) return null;
-  if (t.gclid || t.gbraid || t.wbraid) return "Google Ads";
-  if (t.fbclid) return "Facebook / Instagram";
-  if (t.msclkid) return "Bing Ads";
-  if (t.utm_source) return [t.utm_source, t.utm_medium, t.utm_campaign].filter(Boolean).join(" / ");
-  if (t.referrer) {
-    try {
-      return `Link from ${new URL(t.referrer).host}`;
-    } catch {
-      return t.referrer;
-    }
-  }
-  return "Direct visit";
-}
 
 export default async function LeadPage({ params }: Props) {
   await requireUser();
@@ -36,9 +21,9 @@ export default async function LeadPage({ params }: Props) {
   const attribution = (l.attribution ?? {}) as Attribution;
 
   const rows: [string, string | undefined | null][] = [
-    ["Appliance", l.applianceType],
+    [l.kit ? "Maintenance kit" : "Appliance", l.applianceType],
     ["Brand", l.brand],
-    ["Problem", l.problem],
+    ["Comment", l.problem],
     ["ZIP", l.zip],
     ["Urgency", l.urgency ? (urgencyLabel[l.urgency] ?? l.urgency) : undefined],
     ["Preferred date", l.preferredDate],
@@ -51,7 +36,15 @@ export default async function LeadPage({ params }: Props) {
     ["Last visit", describeTouch(attribution.last)],
     ["First visit", attribution.first && JSON.stringify(attribution.first) !== JSON.stringify(attribution.last) ? describeTouch(attribution.first) : null],
     ["Landing page", attribution.last?.landing_page ?? null, true],
-    ["Form", l.formId ?? null, true],
+    [
+      "UTM",
+      Object.entries(campaignTags(attribution))
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n") || null,
+      true,
+    ],
+    ["Form", l.formLabel ?? describeForm(l.formId, l.pageUrl)],
     ["Sent from page", l.pageUrl ?? null, true],
   ];
 
@@ -109,7 +102,7 @@ export default async function LeadPage({ params }: Props) {
                 .map(([k, v, mono]) => (
                   <div key={k} className="grid gap-1 border-b border-line py-2.5 last:border-0 sm:grid-cols-[10rem_1fr] sm:gap-4">
                     <dt className="text-[0.85rem] text-muted">{k}</dt>
-                    <dd className={`m-0 break-all ${mono ? "font-mono text-[0.85rem]" : "font-semibold"}`}>{v}</dd>
+                    <dd className={`m-0 break-all whitespace-pre-line ${mono ? "font-mono text-[0.85rem]" : "font-semibold"}`}>{v}</dd>
                   </div>
                 ))}
             </dl>

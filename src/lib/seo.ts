@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { PageKey } from "@/content/model";
 import { fill, getContent, getSite } from "@/content/store";
 
-type SeoKey = Exclude<PageKey, "service">;
+type SeoKey = Exclude<PageKey, "service" | "maintenance">;
 
 export function editableMetadata(key: SeoKey, path: string, vars: Record<string, string> = {}) {
   const site = getSite();

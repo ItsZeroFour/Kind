@@ -21,6 +21,14 @@ export type Lead = Omit<LeadInput, "website"> & {
   createdAt: string;
   source: "website";
   userAgent?: string;
+  /** +15035550142 */
+  phoneE164?: string;
+  /** Which form, in words: “Home page, first screen form”, “Maintenance kit button on /pricing”… */
+  formLabel?: string;
+  /** Where the visitor came from, in words: “Google Ads · campaign …”, “Meta ads”, “Google search (organic)”… */
+  channel?: string;
+  /** The maintenance kit chosen, when the appliance choice is a kit */
+  kit?: string;
 };
 
 export type FieldErrors = Partial<Record<keyof LeadInput, string>>;

@@ -1,4 +1,4 @@
-import { getAreas, getPublicSite, getServices } from "@/content/store";
+import { getAreas, getPublicSite, getServices, hasReviews } from "@/content/store";
 import { SiteProvider } from "@/components/providers/SiteProvider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -11,6 +11,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   const nav = {
     services: getServices().map(({ slug, name, icon }) => ({ slug, name, icon })),
     areas: getAreas().map(({ slug, city }) => ({ slug, city })),
+    showReviews: hasReviews(),
   };
   return (
     <SiteProvider value={getPublicSite()}>

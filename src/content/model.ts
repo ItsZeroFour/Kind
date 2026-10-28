@@ -73,6 +73,7 @@ const brand = {
     bio: "After years with larger repair companies, I started Kind to repair appliances the way I would want it done in my own home: one honest price before work, a real diagnosis, and clean work around your family and pets.",
   },
   photos: { hero: "", work: "", pet1: "", pet2: "" },
+  heroBg: { enabled: true, desktop: "", mobile: "", shadeDesktop: 60, shadeMobile: 70 },
 };
 
 const home = {
@@ -92,6 +93,7 @@ const home = {
 };
 
 const blocks = {
+  heroChipPrice: "Diagnosis credited to repair",
   heroChipPets: "Pet-friendly",
   trust: [
     { icon: "badge", label: "Licensed & insured" },
@@ -142,6 +144,9 @@ const blocks = {
     title: "One clear price to start. No surprises after.",
     intro: "You always know the cost before we touch a screwdriver. If the repair does not make sense, we tell you.",
     footnote: "Decide not to repair? You pay only the {price} service call and keep the diagnosis and photos.",
+    rowCall: "Service call & diagnosis",
+    rowApprove: "You approve the repair",
+    rowTotal: "Diagnosis cost if you go ahead",
     included: [
       { icon: "truck", text: "A visit to your home at a time you pick" },
       { icon: "search", text: "Full diagnosis, not a guess" },
@@ -336,6 +341,14 @@ const pages = {
     faqTitle: "{service} FAQ",
     ctaTitle: "Need {appliance} repair today?",
   },
+  maintenance: {
+    introTitle: "Appliance care that prevents costly repairs",
+    formTitle: "Book a maintenance visit",
+    pricesTitle: "Choose your care kit",
+    pricesIntro: "",
+    ctaTitle: "Ready to book your maintenance visit?",
+    relatedTitle: "Appliance repair services",
+  },
   areas: {
     eyebrow: "Where we work",
     heading: "Appliance repair service areas",
@@ -476,8 +489,11 @@ const form = {
   windows: ["As soon as possible", "Morning (8 AM – 12 PM)", "Afternoon (12 PM – 4 PM)", "Late afternoon (4 PM – 6 PM)", "Flexible"],
   submitFull: "Request my appointment",
   submitCompact: "Request a call back",
+  creditNote: "Service call credited toward the repair.",
   note: "We quote before any work starts. Your info is never sold.",
   callPrompt: "In a hurry? Call",
+  includeKits: true,
+  compactComment: false,
 };
 export type FormContent = typeof form;
 
@@ -490,6 +506,12 @@ const integrations = {
   googleSiteVerification: "",
   bookingUrl: "",
   leadEmail: "",
+  reviewsWidget: "",
+  chatWidget: "",
+  redirects: [
+    { from: "/service-areas/aloha", to: "/service-areas/beaverton" },
+    { from: "/service-areas/cornelius", to: "/service-areas/forest-grove" },
+  ],
 };
 export type PageKey = keyof typeof pages;
 
@@ -522,6 +544,8 @@ const prices = {
   ],
   serviceBlockTitle: "Typical {appliance} repair prices",
   serviceBlockIntro: "Upfront prices for common repairs. The final price is confirmed after the {price} diagnosis.",
+  serviceBlockLink: "All pricing",
+  packageButton: "Book this service",
   ctaTitle: "Not sure what's wrong?",
   ctaText: "Book a diagnosis. We find the cause and give you the price before any work starts.",
   seoTitle: "Appliance Repair Prices in Hillsboro & Beaverton, OR",
@@ -763,6 +787,18 @@ export const sections: SectionDef[] = [
           { kind: "image", key: "photos.pet2", label: "Pets block, photo 2", shape: "tall" },
         ],
       },
+      {
+        title: "Home page first screen background",
+        description:
+          "A photo behind the whole first screen of the home page, under a dark green gradient. Empty slots use the bundled photo (public/images/hero). The text side is always darkened enough to stay readable.",
+        fields: [
+          { kind: "toggle", key: "heroBg.enabled", label: "Show the background photo" },
+          { kind: "image", key: "heroBg.desktop", label: "Computer", shape: "wide", help: "Landscape, about 2400×1680. The right side stays lighter" },
+          { kind: "image", key: "heroBg.mobile", label: "Phone", shape: "tall", help: "Portrait, about 1200×1600" },
+          { kind: "number", key: "heroBg.shadeDesktop", label: "Darkening on computers, %", min: 30, max: 90, help: "About 60. Sets the photo side; behind the text it is always at least 88% so small text stays readable" },
+          { kind: "number", key: "heroBg.shadeMobile", label: "Darkening on phones, %", min: 50, max: 90, help: "About 70. Sets the lower part; behind the text it is always at least 88%" },
+        ],
+      },
     ],
   },
   {
@@ -810,6 +846,12 @@ export const sections: SectionDef[] = [
         description: "The strip under the home page hero.",
         fields: [
           { kind: "list", key: "trust", label: "Badges", itemLabel: "badge", titleKey: "label", max: 8, item: iconText("label") },
+          {
+            kind: "text",
+            key: "heroChipPrice",
+            label: "Service call chip in the hero",
+            help: "Shown on the first screen of every page. Empty hides the chip. {price} inserts the fee, but the fee is better explained in the Pricing block",
+          },
           { kind: "text", key: "heroChipPets", label: "Pets chip in the hero" },
         ],
       },
@@ -867,6 +909,9 @@ export const sections: SectionDef[] = [
         description: placeholdersHelp + ". The price itself is set in Company & contacts.",
         fields: [
           ...sectionHead("pricing"),
+          { kind: "text", key: "pricing.rowCall", label: "Calculation: first row", required: true },
+          { kind: "text", key: "pricing.rowApprove", label: "Calculation: second row", required: true },
+          { kind: "text", key: "pricing.rowTotal", label: "Calculation: last row ($0)", required: true },
           { kind: "textarea", key: "pricing.footnote", label: "Note under the calculation", rows: 2 },
           { kind: "list", key: "pricing.included", label: "What the visit includes", itemLabel: "item", titleKey: "text", max: 8, item: iconText("text") },
           { kind: "text", key: "pricing.warrantyNote", label: "Warranty text" },
@@ -1006,6 +1051,20 @@ export const sections: SectionDef[] = [
           text("ctaTitle", "Orange call to action at the bottom"),
         ],
       }),
+      {
+        title: "Maintenance page template · /services/…",
+        description:
+          "Replaces the repair phrases on services marked “Maintenance page” in Services. The service call and diagnosis block is not shown there. " +
+          placeholdersHelp,
+        fields: [
+          text("maintenance.introTitle", "Heading above the paragraphs"),
+          text("maintenance.formTitle", "Form heading"),
+          text("maintenance.pricesTitle", "Kits block: heading"),
+          area("maintenance.pricesIntro", "Kits block: text", "Empty: no text"),
+          text("maintenance.relatedTitle", "“Other services” heading"),
+          text("maintenance.ctaTitle", "Orange call to action at the bottom"),
+        ],
+      },
       pageGroup("areas", "Service area", "/service-areas", {
         extra: "In the cards, {city} is the city name.",
         fields: [
@@ -1123,13 +1182,25 @@ export const sections: SectionDef[] = [
           { kind: "text", key: "submitFull", label: "Button on the full form", required: true, help: "The Contact page has its own button text in Site pages" },
           { kind: "text", key: "submitCompact", label: "Button on the short form", required: true, help: "The short form is on service pages and the home page" },
           {
-            kind: "textarea",
-            key: "note",
-            label: "Note under the button",
-            rows: 2,
-            help: "Comes after the service call fee, which is added automatically from Company & contacts",
+            kind: "text",
+            key: "creditNote",
+            label: "Service call line under the button",
+            help: "Shown when the fee is credited toward the repair (Company & contacts). {price} inserts the fee. Empty hides it",
           },
+          { kind: "textarea", key: "note", label: "Note under the button", rows: 2 },
           { kind: "text", key: "callPrompt", label: "Call prompt before the phone number" },
+          { kind: "toggle", key: "compactComment", label: "Comment field in the short form", help: "An optional “What's going on?” field on the home, service and city forms" },
+        ],
+      },
+      {
+        title: "Maintenance kits",
+        fields: [
+          {
+            kind: "toggle",
+            key: "includeKits",
+            label: "Add maintenance kits to the appliance list",
+            help: "The kits are the Maintenance categories in Prices. Their “Book this service” buttons open the form with the kit already chosen",
+          },
         ],
       },
     ],
@@ -1170,6 +1241,16 @@ export const sections: SectionDef[] = [
                   { value: "microwave", label: "Microwave" },
                   { value: "icemaker", label: "Ice maker" },
                   { value: "other", label: "Other" },
+                ],
+              },
+              {
+                kind: "select",
+                key: "pageType",
+                label: "Page type",
+                help: "A maintenance page uses the Maintenance page template in Site pages and has no service call block",
+                options: [
+                  { value: "repair", label: "Repair page" },
+                  { value: "maintenance", label: "Maintenance page" },
                 ],
               },
               { kind: "text", key: "appliance", label: "Appliance in a sentence", required: true, help: "Lowercase, for phrases like “Common refrigerator problems we fix”" },
@@ -1237,6 +1318,14 @@ export const sections: SectionDef[] = [
         fields: [
           { kind: "text", key: "serviceBlockTitle", label: "Heading" },
           { kind: "textarea", key: "serviceBlockIntro", label: "Text", rows: 2 },
+          { kind: "text", key: "serviceBlockLink", label: "Link to /pricing", required: true },
+          {
+            kind: "text",
+            key: "packageButton",
+            label: "Button on maintenance kits",
+            required: true,
+            help: "Opens /book with the kit already chosen. Also shown under kit cards on service pages",
+          },
         ],
       },
       {
@@ -1470,6 +1559,56 @@ sections.push({
           max: 500,
           pattern: "[^\\s@,]+@[^\\s@,]+\\.[^\\s@,]+(\\s*,\\s*[^\\s@,]+@[^\\s@,]+\\.[^\\s@,]+)*",
           patternError: "Emails separated by commas",
+        },
+      ],
+    },
+    {
+      title: "Reviews widget",
+      description:
+        "Google reviews from Trustindex, Elfsight, EmbedSocial and similar. Paste the embed code the service gives you. It is shown in the “What customers say” block (home, service and city pages) and on /reviews. Empty: the block and the Reviews menu item stay hidden until reviews are added in Reviews. Hiding a single review is done in the widget service's own dashboard.",
+      fields: [
+        {
+          kind: "textarea",
+          key: "reviewsWidget",
+          label: "Widget embed code",
+          rows: 4,
+          max: 3000,
+          help: "Only <script src=\"https://…\"> and <div> tags with their attributes are used; anything else is ignored",
+        },
+      ],
+    },
+    {
+      title: "Chat widget",
+      description:
+        "A chat bubble on every page (Housecall Pro / ProsBuddy, an AI agent widget and similar). Paste the embed code the service gives you. On phones the site's “Call / Book now” bar stays on top; if the bubble overlaps it, raise it with the “bottom offset” or “mobile position” setting in the chat service.",
+      fields: [
+        {
+          kind: "textarea",
+          key: "chatWidget",
+          label: "Chat embed code",
+          rows: 4,
+          max: 3000,
+          help: "Only <script src=\"https://…\"> and <div> tags with their attributes are used. Empty: the server setting NEXT_PUBLIC_CHAT_WIDGET_SRC, if any",
+        },
+      ],
+    },
+    {
+      title: "Redirects (301)",
+      description:
+        "For pages you removed or renamed, so visitors and Google land on a live page. “From” is the old address like /service-areas/aloha, “To” is a page on the site like /service-areas/beaverton or a full https:// link.",
+      fields: [
+        {
+          kind: "list",
+          key: "redirects",
+          label: "Redirects",
+          itemLabel: "redirect",
+          titleKey: "from",
+          unique: "from",
+          max: 100,
+          item: [
+            { kind: "text", key: "from", label: "From", required: true, max: 200, pattern: "/[\\w\\-./%]*", patternError: "Starts with /, for example /service-areas/aloha" },
+            { kind: "text", key: "to", label: "To", required: true, max: 500, pattern: "(/[\\w\\-./%?=&#]*|https://\\S+)", patternError: "A page like /service-areas/beaverton or an https:// link" },
+          ],
         },
       ],
     },

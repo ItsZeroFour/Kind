@@ -1,5 +1,6 @@
 import { getUser } from "@/lib/auth";
 import { exportLeads, isLeadStatus, leadStatuses } from "@/lib/lead-store";
+import { campaignTags } from "@/lib/lead-labels";
 
 export async function GET(req: Request) {
   if (!(await getUser())) return new Response("Unauthorized", { status: 401 });
@@ -9,7 +10,7 @@ export async function GET(req: Request) {
   const rows = exportLeads({ status, q: sp.get("q") ?? undefined });
 
   const label = (v: string) => leadStatuses.find((x) => x.value === v)?.label ?? v;
-  const header = ["Date (UTC)", "Status", "Name", "Phone", "Email", "Appliance", "Brand", "Problem", "ZIP", "Urgency", "Visit date", "Visit time", "Customer", "Form", "Page", "Note"];
+  const header = ["Date (UTC)", "Status", "Name", "Phone", "Email", "Appliance", "Brand", "Problem", "ZIP", "Urgency", "Visit date", "Visit time", "Customer", "Source", "UTM source", "UTM medium", "UTM campaign", "UTM term", "UTM content", "gclid", "fbclid", "Form", "Page", "Note"];
   const lines = rows.map((r) => [
     r.createdAt.replace("T", " ").slice(0, 19),
     label(r.status),
@@ -24,7 +25,9 @@ export async function GET(req: Request) {
     r.lead.preferredDate ?? "",
     r.lead.preferredTime ?? "",
     r.lead.customerType ?? "",
-    r.lead.formId ?? "",
+    r.channel,
+    ...Object.values(campaignTags(r.lead.attribution)),
+    r.formLabel,
     r.lead.pageUrl ?? "",
     r.note,
   ]);

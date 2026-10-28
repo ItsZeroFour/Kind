@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { parsePhone } from "@/content/model";
+import { getKits } from "@/content/store";
 import { validateLead, type Lead } from "@/lib/leads";
+import { describeForm, describeSource } from "@/lib/lead-labels";
 import { dispatchLead } from "@/lib/lead-dispatch";
 import { saveLead, setLeadDelivery } from "@/lib/lead-store";
 import { createLimiter } from "@/lib/rate-limit";
@@ -41,6 +44,10 @@ export async function POST(req: Request) {
     createdAt: new Date().toISOString(),
     source: "website",
     userAgent: req.headers.get("user-agent") ?? undefined,
+    phoneE164: parsePhone(fields.phone)?.e164,
+    formLabel: describeForm(fields.formId, fields.pageUrl),
+    channel: describeSource(fields.attribution),
+    kit: fields.applianceType && getKits().includes(fields.applianceType) ? fields.applianceType : undefined,
   };
 
   if (website) return NextResponse.json({ ok: true, id: lead.id });

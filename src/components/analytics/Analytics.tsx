@@ -1,5 +1,6 @@
 import Script from "next/script";
 import { getIntegrations } from "@/content/store";
+import { EmbedWidget } from "@/components/ui/EmbedWidget";
 import { AttributionCapture } from "./AttributionCapture";
 
 export function Analytics() {
@@ -41,7 +42,7 @@ export function Analytics() {
 
       {i.callTrackingScript && <Script src={i.callTrackingScript} strategy="afterInteractive" />}
 
-      {i.chatWidgetSrc && <Script src={i.chatWidgetSrc} strategy="lazyOnload" />}
+      {i.chatWidget.length > 0 && <EmbedWidget items={i.chatWidget} lazy />}
     </>
   );
 }
