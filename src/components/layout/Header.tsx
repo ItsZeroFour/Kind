@@ -79,7 +79,7 @@ export function Header({ nav }: { nav: NavData }) {
         </div>
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-line bg-surface">
+      <header data-site-header className="sticky top-0 z-50 border-b border-line bg-surface">
         <div className="container-x flex min-h-[68px] items-center gap-4">
           <Logo logo={site.logo} name={site.name} className="mr-auto" />
 

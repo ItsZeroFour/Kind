@@ -4,7 +4,7 @@ import path from "node:path";
 import { getDb } from "@/lib/db";
 import { parseEmbed } from "@/lib/embed";
 import { integrations as envIntegrations } from "@/config/site";
-import { defaults, mergeDeep, parsePhone, type Content, type SectionKey } from "./model";
+import { defaultChatWidget, defaults, mergeDeep, parsePhone, type Content, type SectionKey } from "./model";
 import type { Service } from "./services";
 
 let cache: { version: number; content: Content } | undefined;
@@ -189,6 +189,7 @@ export function getBookingForm() {
     submitCompact: f.submitCompact,
     note: f.note,
     callPrompt: f.callPrompt,
+    consentText: fill(f.consentText || defaults.form.consentText, site),
   };
 }
 
@@ -219,13 +220,22 @@ export function getIntegrations() {
     googleSiteVerification: c.googleSiteVerification || envIntegrations.googleSiteVerification,
     bookingUrl: c.bookingUrl || envIntegrations.bookingUrl,
     callTrackingScript: envIntegrations.callTrackingScript,
-    chatWidget: c.chatWidget.trim()
-      ? parseEmbed(c.chatWidget)
-      : parseEmbed(envIntegrations.chatWidgetSrc ? `<script src="${envIntegrations.chatWidgetSrc}"></script>` : ""),
+    chatWidget: !c.chatEnabled
+      ? []
+      : parseEmbed(
+          c.chatWidget.trim() ||
+            (envIntegrations.chatWidgetSrc ? `<script src="${envIntegrations.chatWidgetSrc}"></script>` : defaultChatWidget),
+        ),
     reviewsWidget: parseEmbed(c.reviewsWidget),
     redirects: c.redirects,
     leadEmail: c.leadEmail || process.env.LEAD_NOTIFY_EMAIL || "",
   };
+}
+
+/** Where leads go in the CRM. Server only: every POST there starts paid texts and calls. */
+export function getCrmWebhook() {
+  const url = (getContent().integrations.crmWebhookUrl || process.env.LEAD_WEBHOOK_URL || "").split(",")[0].trim();
+  return /^https?:\/\/\S+$/i.test(url) ? url : "";
 }
 
 export function getPublicSite() {

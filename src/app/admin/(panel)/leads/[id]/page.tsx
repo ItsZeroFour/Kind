@@ -5,7 +5,8 @@ import { requireUser } from "@/lib/auth";
 import { getLead } from "@/lib/lead-store";
 import type { Attribution } from "@/lib/tracking";
 import { campaignTags, describeForm, describeTouch } from "@/lib/lead-labels";
-import { StatusBadge, UrgencyBadge, fmtLeadDate, leadPhone, timeAgo, urgencyLabel } from "../../../_components/lead-ui";
+import { CrmBadge, StatusBadge, UrgencyBadge, fmtLeadDate, leadPhone, timeAgo, urgencyLabel } from "../../../_components/lead-ui";
+import { CrmResend } from "./CrmResend";
 import { LeadControls } from "./LeadControls";
 
 type Props = { params: Promise<{ id: string }> };
@@ -30,7 +31,9 @@ export default async function LeadPage({ params }: Props) {
     ["Preferred time", l.preferredTime],
     ["Customer", l.customerType === "commercial" ? "Business" : "Home"],
     ["Email", l.email],
+    ["SMS consent", l.consent ? `Yes: “${l.consentText ?? ""}”` : "Not recorded (sent before the checkbox existed)"],
   ];
+  const crm = lead.crmDetail;
 
   const source: [string, string | null, boolean?][] = [
     ["Last visit", describeTouch(attribution.last)],
@@ -59,6 +62,7 @@ export default async function LeadPage({ params }: Props) {
           <h1 className="text-[clamp(1.5rem,1.2rem+1vw,2rem)]">{lead.name}</h1>
           <StatusBadge status={lead.status} />
           <UrgencyBadge urgency={lead.urgency} />
+          <CrmBadge crm={lead.crm} />
         </div>
         <p className="mt-1 text-muted">
           <time dateTime={lead.createdAt}>{fmtLeadDate(lead.createdAt)}</time> · {timeAgo(lead.createdAt)}
@@ -113,9 +117,38 @@ export default async function LeadPage({ params }: Props) {
           <LeadControls id={lead.id} status={lead.status} note={lead.note} />
 
           <section className="card text-[0.88rem]">
-            <h2 className="text-[1.1rem]">Notifications</h2>
-            {lead.delivery && lead.delivery.length > 0 ? (
-              <ul className="mt-3 flex flex-col gap-1.5">
+            <h2 className="text-[1.1rem]">CRM</h2>
+            {lead.crm === "delivered" && (
+              <p className="mt-2">
+                <b className="text-ok">Delivered</b>
+                {crm.sentAt && ` ${fmtLeadDate(crm.sentAt)}`}
+                {crm.attempts > 1 && ` · on attempt ${crm.attempts}`}
+              </p>
+            )}
+            {lead.crm === "pending" && (
+              <p className="mt-2">
+                <b>Not delivered yet</b>
+                {crm.error && ` (${crm.error})`}. Attempts: {crm.attempts}.
+                {crm.nextAt && ` Next try ${fmtLeadDate(new Date(crm.nextAt).toISOString(), { timeStyle: "short" })}`}, every 5 minutes until{" "}
+                {crm.until && fmtLeadDate(new Date(crm.until).toISOString())}.
+              </p>
+            )}
+            {lead.crm === "failed" && (
+              <p className="mt-2">
+                <b className="text-cta">Not delivered</b>
+                {crm.error && ` (${crm.error})`} after {crm.attempts} attempts in 24 hours. Call the customer yourself or send it again.
+              </p>
+            )}
+            {!lead.crm && <p className="mt-2 text-muted">Not sent: no CRM webhook was set when this lead came in (Integrations → CRM).</p>}
+            {(lead.crm === "failed" || !lead.crm) && <CrmResend id={lead.id} />}
+            {crm.payload && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-muted">What was sent</summary>
+                <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-3 text-[0.75rem] leading-snug">{JSON.stringify(JSON.parse(crm.payload), null, 2)}</pre>
+              </details>
+            )}
+            {lead.delivery && lead.delivery.length > 0 && (
+              <ul className="mt-3 flex flex-col gap-1.5 border-t border-line pt-3">
                 {lead.delivery.map((d, i) => (
                   <li key={i} className="flex items-center justify-between gap-3">
                     <span className="font-mono text-[0.82rem]">{d.destination}</span>
@@ -123,10 +156,6 @@ export default async function LeadPage({ params }: Props) {
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="mt-2 text-muted">
-                Email and webhooks are not set up, so this lead exists only here. To set up: an address in Integrations plus RESEND_API_KEY on the server, or LEAD_WEBHOOK_URL.
-              </p>
             )}
             {lead.updatedAt && (
               <p className="mt-3 border-t border-line pt-3 text-muted">

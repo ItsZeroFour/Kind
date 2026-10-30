@@ -445,8 +445,42 @@ const pages = {
       },
       { title: "Contact us", text: "Questions about this policy? Contact {company} at {email} or {phone}." },
     ],
+    sms: {
+      title: "Text messaging (SMS)",
+      text: "We collect your mobile number only when you provide it to us, for example through a form on this website. By providing your number and checking the consent box, you agree to receive text messages from Kind Appliance Repair about your service request, appointment confirmations, technician arrival times, reminders and repair updates. Consent to receive text messages is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help.\n\nNo mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.",
+    },
     seoTitle: "Privacy Policy",
     seoDescription: "How {company} collects, uses and protects your information.",
+  },
+  terms: {
+    heading: "Terms & Conditions",
+    updated: "October 2026",
+    intro:
+      "These terms apply to your use of kindappliancerepair.com and to services provided by Kind Appliance Repair (I Am Kind LLC), Hillsboro, Oregon. By using this website or requesting service, you agree to these terms.",
+    blocks: [
+      {
+        title: "Service requests",
+        text: "Submitting a request on this website does not guarantee an appointment. We will contact you to confirm availability, an arrival window and the service call fee. Repair prices are quoted on site before any work begins.",
+      },
+      {
+        title: "SMS Terms & Conditions",
+        text: [
+          "1. Description of SMS use cases. By opting into our messaging service, you agree to receive text messages from Kind Appliance Repair regarding your service requests, technician arrival times, appointment reminders, and follow-up updates regarding your repairs and installations.",
+          '2. Opt-out instructions. You can cancel the SMS service at any time. Just text "STOP" to our number. After you send "STOP", we will send you a message to confirm that you have been unsubscribed. After this, you will no longer receive SMS messages from us. If you want to join again, just sign up as you did the first time. For help, reply "HELP" to any message or call (503) 501-5973.',
+          "3. Message & data rate disclosure. Message and data rates may apply for any messages sent to you from us and to us from you. Message frequency varies based on your interaction and the status of your repair job. If you have any questions about your text plan or data plan, contact your wireless provider.",
+          "4. Carrier liability disclaimer. Carriers are not liable for delayed or undelivered messages. Kind Appliance Repair and mobile carriers are not responsible for any technical issues that may lead to the failure of message delivery.",
+          "5. Age restriction. By consenting to these terms, you confirm that you are at least 18 years of age or have the consent of a parent or guardian to receive messages from this service.",
+          "6. Privacy. See our Privacy Policy at https://kindappliancerepair.com/privacy-policy.",
+        ].join("\n\n"),
+      },
+      {
+        title: "Website content",
+        text: "Information on this website is provided for general purposes and may change without notice. Prices shown are starting prices; your final price is quoted on site.",
+      },
+      { title: "Contact", text: "Kind Appliance Repair · (503) 501-5973 · service@kindappliancerepair.com" },
+    ],
+    seoTitle: "Terms & Conditions",
+    seoDescription: "Terms for using the {company} website and services, including SMS terms.",
   },
 };
 
@@ -492,10 +526,16 @@ const form = {
   creditNote: "Service call credited toward the repair.",
   note: "We quote before any work starts. Your info is never sold.",
   callPrompt: "In a hurry? Call",
+  consentText:
+    "By submitting, you agree to receive calls and texts, including automated calls, from Kind Appliance Repair about your request. Msg & data rates may apply. Reply STOP to opt out.",
   includeKits: true,
   compactComment: false,
 };
 export type FormContent = typeof form;
+
+/** The ProsBuddy (LeadConnector) chat with the AI bot, set up by the owner. */
+export const defaultChatWidget =
+  '<script src="https://widgets.leadconnectorhq.com/loader.js" data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js" data-widget-id="6ac8c8125434ae92088e18d1"></script>';
 
 const integrations = {
   gtmId: "",
@@ -506,8 +546,10 @@ const integrations = {
   googleSiteVerification: "",
   bookingUrl: "",
   leadEmail: "",
+  crmWebhookUrl: "",
   reviewsWidget: "",
-  chatWidget: "",
+  chatEnabled: true,
+  chatWidget: defaultChatWidget,
   redirects: [
     { from: "/service-areas/aloha", to: "/service-areas/beaverton" },
     { from: "/service-areas/cornelius", to: "/service-areas/forest-grove" },
@@ -1125,6 +1167,30 @@ export const sections: SectionDef[] = [
               { kind: "textarea", key: "text", label: "Text", rows: 5, required: true },
             ],
           },
+          { kind: "text", key: "sms.title", label: "SMS section: heading", help: "Required for SMS registration (A2P). Keep the wording as is" },
+          { kind: "textarea", key: "sms.text", label: "SMS section: text", rows: 8 },
+        ],
+      }),
+      pageGroup("terms", "Terms & Conditions", "/terms", {
+        hero: false,
+        extra:
+          "The SMS Terms section is required for SMS registration (A2P): keep its wording. A blank line in a text starts a new paragraph.",
+        fields: [
+          { kind: "text", key: "heading", label: "H1 heading", required: true },
+          { kind: "text", key: "updated", label: "Last updated", help: "For example, October 2026. Empty: the current month" },
+          { kind: "textarea", key: "intro", label: "Opening paragraph", rows: 3 },
+          {
+            kind: "list",
+            key: "blocks",
+            label: "Sections",
+            itemLabel: "section",
+            titleKey: "title",
+            max: 20,
+            item: [
+              { kind: "text", key: "title", label: "Heading", required: true },
+              { kind: "textarea", key: "text", label: "Text", rows: 8, required: true },
+            ],
+          },
         ],
       }),
     ],
@@ -1190,6 +1256,15 @@ export const sections: SectionDef[] = [
           { kind: "textarea", key: "note", label: "Note under the button", rows: 2 },
           { kind: "text", key: "callPrompt", label: "Call prompt before the phone number" },
           { kind: "toggle", key: "compactComment", label: "Comment field in the short form", help: "An optional “What's going on?” field on the home, service and city forms" },
+          {
+            kind: "textarea",
+            key: "consentText",
+            label: "Consent checkbox text",
+            rows: 3,
+            required: true,
+            max: 600,
+            help: "Next to the required checkbox under every form, followed by links to the Privacy Policy and Terms. Sent to the CRM word for word as consent_text. Needed for SMS registration (A2P)",
+          },
         ],
       },
       {
@@ -1548,6 +1623,20 @@ sections.push({
       ],
     },
     {
+      title: "CRM (ProsBuddy)",
+      description:
+        "Every lead is sent here from the server as JSON (form_type, phone as +1XXXXXXXXXX, consent and the rest). If the CRM does not answer with 200, the site tries again every 5 minutes for 24 hours. Delivery status is shown in Leads. Send test leads only with the number +1 503 730 7116: each lead starts paid texts and calls.",
+      fields: [
+        {
+          kind: "url",
+          key: "crmWebhookUrl",
+          label: "Webhook URL",
+          placeholder: "https://services.leadconnectorhq.com/hooks/…",
+          help: "Never shown on the site. Empty: the LEAD_WEBHOOK_URL server setting",
+        },
+      ],
+    },
+    {
       title: "Lead emails",
       description: "Sending needs RESEND_API_KEY on the server. Every lead is saved in Leads either way.",
       fields: [
@@ -1580,15 +1669,16 @@ sections.push({
     {
       title: "Chat widget",
       description:
-        "A chat bubble on every page (Housecall Pro / ProsBuddy, an AI agent widget and similar). Paste the embed code the service gives you. On phones the site's “Call / Book now” bar stays on top; if the bubble overlaps it, raise it with the “bottom offset” or “mobile position” setting in the chat service.",
+        "The chat on every page. On computers it looks as set up in ProsBuddy. On phones the site hides the standard button and greeting and shows a small orange chat icon above the “Call / Book now” bar instead (ProsBuddy / LeadConnector chat); the open chat fits between the header and the bar.",
       fields: [
+        { kind: "toggle", key: "chatEnabled", label: "Show the chat" },
         {
           kind: "textarea",
           key: "chatWidget",
           label: "Chat embed code",
           rows: 4,
           max: 3000,
-          help: "Only <script src=\"https://…\"> and <div> tags with their attributes are used. Empty: the server setting NEXT_PUBLIC_CHAT_WIDGET_SRC, if any",
+          help: "Only <script src=\"https://…\"> and <div> tags with their attributes are used. Empty: the built-in ProsBuddy chat code",
         },
       ],
     },

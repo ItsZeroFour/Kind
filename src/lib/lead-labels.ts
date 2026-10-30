@@ -55,10 +55,10 @@ export function describeSource(attribution: unknown) {
   return describeTouch(a.last) ?? describeTouch(a.first) ?? "Not recorded";
 }
 
-/** The UTM tags and click ids of the visit that led to the lead (last touch, falling back to the first). */
-export function campaignTags(attribution: unknown) {
+/** The UTM tags and click ids of the visit that led to the lead (last touch, falling back to the first; or the first visit first). */
+export function campaignTags(attribution: unknown, prefer: "first" | "last" = "last") {
   const a = (attribution ?? {}) as Attribution;
-  const t = a.last ?? a.first;
+  const t = prefer === "first" ? (a.first ?? a.last) : (a.last ?? a.first);
   const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"] as const;
   return Object.fromEntries(keys.map((k) => [k, t?.[k] ?? ""])) as Record<(typeof keys)[number], string>;
 }

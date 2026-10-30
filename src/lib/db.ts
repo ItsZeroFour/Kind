@@ -67,6 +67,15 @@ const migrations = [
      key TEXT PRIMARY KEY,
      value TEXT NOT NULL
    );`,
+  // CRM delivery: the exact JSON sent, its state (pending → delivered | failed) and the retry schedule.
+  `ALTER TABLE leads ADD COLUMN crm_state TEXT;
+   ALTER TABLE leads ADD COLUMN crm_payload TEXT;
+   ALTER TABLE leads ADD COLUMN crm_attempts INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE leads ADD COLUMN crm_next_at INTEGER;
+   ALTER TABLE leads ADD COLUMN crm_until INTEGER;
+   ALTER TABLE leads ADD COLUMN crm_error TEXT;
+   ALTER TABLE leads ADD COLUMN crm_sent_at TEXT;
+   CREATE INDEX IF NOT EXISTS leads_crm_due ON leads (crm_state, crm_next_at);`,
 ];
 
 function migrate(db: DatabaseSync) {

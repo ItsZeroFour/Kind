@@ -10,7 +10,8 @@ const company = [
   ["/faq", "FAQ"],
   ["/contact", "Contact"],
   ["/book", "Book service"],
-  ["/privacy-policy", "Privacy"],
+  ["/privacy-policy", "Privacy Policy"],
+  ["/terms", "Terms"],
 ];
 
 function Col({ title, children }: { title: string; children: React.ReactNode }) {

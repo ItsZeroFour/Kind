@@ -25,7 +25,7 @@ npm ci
 
 # 3. Настройки: скопировать и заполнить
 cp .env.example .env.production.local
-nano .env.production.local     # ADMIN_EMAIL, ADMIN_PASSWORD, RESEND_API_KEY, LEAD_WEBHOOK_URL и т.д.
+nano .env.production.local     # ADMIN_EMAIL, ADMIN_PASSWORD, LEAD_WEBHOOK_URL и т.д.
 
 # 4. Сборка и запуск
 npm run build
@@ -67,8 +67,8 @@ sudo systemctl restart kind
 | `DATA_DIR` | Папка с базой и фото, по умолчанию `./data` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Вход в /admin. При смене пароль обновляется при следующем запуске |
 | `ADMIN_TIMEZONE` | Часовой пояс в списке заявок |
-| `LEAD_WEBHOOK_URL`, `LEAD_WEBHOOK_SECRET` | Куда отправлять заявки (CRM / ИИ-агент). Можно несколько адресов через запятую. Секрет уходит в заголовке `X-Webhook-Secret` |
-| `RESEND_API_KEY`, `LEAD_FROM_EMAIL` | Отправка заявок на email через Resend. Адрес получателя задаётся в админке (Integrations) или в `LEAD_NOTIFY_EMAIL` |
+| `LEAD_WEBHOOK_URL` | Webhook CRM (ProsBuddy). Удобнее задать в админке: Integrations → CRM, админка главнее. Повторы при сбоях идут сами, пока сервер запущен |
+| `RESEND_API_KEY`, `LEAD_FROM_EMAIL` | Необязательно: копии заявок на email через Resend. Все заявки и так хранятся в Admin → Leads |
 | `NEXT_PUBLIC_GTM_ID` и другие `NEXT_PUBLIC_*` | Запасные значения для аналитики. Всё это можно задать и в админке, админка главнее |
 
 Ключи и пароли хранятся только на сервере, в git их не кладите.

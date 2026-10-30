@@ -5,7 +5,7 @@ import type { Lead } from "./leads";
 
 const urgencyText = (v?: string) => (v ? (getBookingForm().urgency.find((u) => u.value === v)?.label ?? v) : "");
 
-/** The lead in plain words, for the CRM / AI agent that calls the customer back: what, how urgent, where from. */
+/** The lead in plain words for the notification email: what, how urgent, where from. */
 export function leadSummary(lead: Lead) {
   return {
     form: lead.formLabel ?? lead.formId ?? "",
@@ -27,31 +27,6 @@ export function leadSummary(lead: Lead) {
 }
 
 type Result = { destination: string; ok: boolean; error?: string };
-
-async function toWebhooks(lead: Lead): Promise<Result[]> {
-  const urls = (process.env.LEAD_WEBHOOK_URL ?? "")
-    .split(",")
-    .map((u) => u.trim())
-    .filter(Boolean);
-  return Promise.all(
-    urls.map(async (url) => {
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(process.env.LEAD_WEBHOOK_SECRET ? { "X-Webhook-Secret": process.env.LEAD_WEBHOOK_SECRET } : {}),
-          },
-          body: JSON.stringify({ type: "lead.created", summary: leadSummary(lead), lead }),
-          signal: AbortSignal.timeout(8000),
-        });
-        return { destination: `webhook:${new URL(url).host}`, ok: res.ok, error: res.ok ? undefined : `HTTP ${res.status}` };
-      } catch (e) {
-        return { destination: "webhook", ok: false, error: String(e) };
-      }
-    }),
-  );
-}
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -101,12 +76,13 @@ async function toEmail(lead: Lead): Promise<Result[]> {
   }
 }
 
-const destinations = [toWebhooks, toEmail];
+// The CRM gets every lead through lib/crm.ts (with retries); this is for the optional extras.
+const destinations = [toEmail];
 
 export async function dispatchLead(lead: Lead, { saved = false } = {}) {
   const results = (await Promise.all(destinations.map((d) => d(lead)))).flat();
   if (results.length === 0 && !saved) {
-    console.warn("[lead] No destinations configured (LEAD_WEBHOOK_URL / RESEND_API_KEY). Lead:", JSON.stringify(lead));
+    console.warn("[lead] Not saved and no email set up (RESEND_API_KEY). Lead:", JSON.stringify(lead));
   }
   for (const r of results.filter((r) => !r.ok)) {
     console.error(`[lead] ${r.destination} failed: ${r.error}. Lead:`, JSON.stringify(lead));

@@ -96,6 +96,27 @@
       transform: translateX(-50%);
     }
   }
+  /* The chat icon on phones: a short wiggle every 9 seconds */
+  --animate-chat-nudge: chat-nudge 9s ease-in-out 4s infinite;
+  @keyframes chat-nudge {
+    0%,
+    89%,
+    100% {
+      transform: none;
+    }
+    91% {
+      transform: rotate(-14deg) scale(1.08);
+    }
+    93% {
+      transform: rotate(11deg) scale(1.08);
+    }
+    95% {
+      transform: rotate(-7deg) scale(1.04);
+    }
+    97% {
+      transform: rotate(4deg);
+    }
+  }
 }
 
 @layer base {
