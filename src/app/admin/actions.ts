@@ -17,7 +17,8 @@ import {
   setPassword,
 } from "@/lib/auth";
 import { deleteMedia, listMedia } from "@/lib/media";
-import { deleteLead, isLeadStatus, updateLead, type LeadStatus } from "@/lib/lead-store";
+import { deleteLead, getLead, isLeadStatus, updateLead, type LeadStatus } from "@/lib/lead-store";
+import { resendToCrm } from "@/lib/crm";
 
 export type SaveResult = { ok: true; savedAt: string } | { ok: false; error: string; errors?: FieldErrors };
 
@@ -133,6 +134,18 @@ export async function updateLeadAction(id: string, patch: { status?: string; not
   if (!updateLead(id, { status: patch.status as LeadStatus | undefined, note }, user.id)) return { ok: false as const, error: "Lead not found" };
   revalidatePath("/admin", "layout");
   return { ok: true as const };
+}
+
+export async function resendLeadToCrmAction(id: string) {
+  await requireUser();
+  const lead = typeof id === "string" ? getLead(id) : null;
+  if (!lead) return { ok: false as const, error: "Lead not found" };
+  if (lead.crm === "delivered" || lead.crm === "pending") return { ok: false as const, error: "Already delivered or being retried" };
+  const sent = await resendToCrm(id, lead.lead);
+  revalidatePath("/admin", "layout");
+  if (sent) return { ok: true as const };
+  const error = getLead(id)?.crmDetail.error;
+  return { ok: false as const, error: `${error ? `${error}. ` : ""}Trying again every 5 minutes for 24 hours` };
 }
 
 export async function deleteLeadAction(id: string) {

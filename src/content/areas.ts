@@ -30,14 +30,6 @@ export const defaultAreas: Area[] = [
     primary: true,
   },
   {
-    slug: "aloha",
-    city: "Aloha",
-    county: "Washington County",
-    zips: ["97003", "97006", "97007", "97078"],
-    neighborhoods: ["Reedville", "Farmington", "Tualatin Valley Hwy corridor"],
-    intro: "Aloha sits right between our Hillsboro and Beaverton routes, so getting a technician to your door is quick and easy.",
-  },
-  {
     slug: "tigard",
     city: "Tigard",
     county: "Washington County",
@@ -52,14 +44,6 @@ export const defaultAreas: Area[] = [
     zips: ["97116"],
     neighborhoods: ["Downtown Forest Grove", "Thatcher", "Gales Creek area"],
     intro: "We extend our West Side service to Forest Grove, helping households and local businesses keep their appliances running.",
-  },
-  {
-    slug: "cornelius",
-    city: "Cornelius",
-    county: "Washington County",
-    zips: ["97113"],
-    neighborhoods: ["Downtown Cornelius", "Council Creek"],
-    intro: "Cornelius is just down the road from Hillsboro, close enough for fast scheduling on every type of home appliance repair.",
   },
   {
     slug: "tualatin",

@@ -67,6 +67,15 @@ const migrations = [
      key TEXT PRIMARY KEY,
      value TEXT NOT NULL
    );`,
+  // CRM delivery: the exact JSON sent, its state (pending → delivered | failed) and the retry schedule.
+  `ALTER TABLE leads ADD COLUMN crm_state TEXT;
+   ALTER TABLE leads ADD COLUMN crm_payload TEXT;
+   ALTER TABLE leads ADD COLUMN crm_attempts INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE leads ADD COLUMN crm_next_at INTEGER;
+   ALTER TABLE leads ADD COLUMN crm_until INTEGER;
+   ALTER TABLE leads ADD COLUMN crm_error TEXT;
+   ALTER TABLE leads ADD COLUMN crm_sent_at TEXT;
+   CREATE INDEX IF NOT EXISTS leads_crm_due ON leads (crm_state, crm_next_at);`,
 ];
 
 function migrate(db: DatabaseSync) {
@@ -94,21 +103,32 @@ function syncEnvAdmin(db: DatabaseSync) {
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password) return;
 
-  const row = db.prepare("SELECT value FROM meta WHERE key = 'env_admin'").get() as { value: string } | undefined;
-  const prev = row ? (JSON.parse(row.value) as { email: string; hash: string }) : undefined;
-  if (prev && prev.email.toLowerCase() === email.toLowerCase() && verifyPassword(password, prev.hash)) return;
+  const readPrev = () => {
+    const row = db.prepare("SELECT value FROM meta WHERE key = 'env_admin'").get() as { value: string } | undefined;
+    return row ? (JSON.parse(row.value) as { email: string; hash: string }) : undefined;
+  };
+  const synced = (prev: ReturnType<typeof readPrev>) =>
+    prev !== undefined && prev.email.toLowerCase() === email.toLowerCase() && verifyPassword(password, prev.hash);
+  if (synced(readPrev())) return;
 
   const idOf = (e: string) => (db.prepare("SELECT id FROM users WHERE email = ?").get(e) as { id: number } | undefined)?.id;
   const onlyUser = () => {
     const rows = db.prepare("SELECT id FROM users LIMIT 2").all() as { id: number }[];
     return rows.length === 1 ? rows[0].id : undefined;
   };
-  // Same email → that user; otherwise the user created from the previous env email
-  // (before this sync existed: the single admin, if there is exactly one).
-  const target = idOf(email) ?? (prev ? idOf(prev.email) : onlyUser());
 
   db.exec("BEGIN IMMEDIATE");
   try {
+    // Checked again under the write lock: parallel build workers open the database at the same time,
+    // and only the first one may create the admin.
+    const prev = readPrev();
+    if (synced(prev)) {
+      db.exec("COMMIT");
+      return;
+    }
+    // Same email → that user; otherwise the user created from the previous env email
+    // (before this sync existed: the single admin, if there is exactly one).
+    const target = idOf(email) ?? (prev ? idOf(prev.email) : onlyUser());
     if (target) {
       db.prepare("UPDATE users SET email = ?, password_hash = ? WHERE id = ?").run(email, hashPassword(password), target);
       db.prepare("DELETE FROM sessions WHERE user_id = ?").run(target);

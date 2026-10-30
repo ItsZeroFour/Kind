@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Download, Inbox, Phone, Search } from "lucid
 import { requireUser } from "@/lib/auth";
 import { countLeadsByStatus, isLeadStatus, leadStatuses, listLeads, type LeadFilter } from "@/lib/lead-store";
 import { AutoRefresh } from "../../_components/AutoRefresh";
-import { StatusBadge, UrgencyBadge, fmtLeadDate, leadPhone, timeAgo } from "../../_components/lead-ui";
+import { CrmBadge, StatusBadge, UrgencyBadge, fmtLeadDate, leadPhone, timeAgo } from "../../_components/lead-ui";
 import { PageHead } from "../../_components/PageHead";
 
 export const metadata = { title: "Leads" };
@@ -117,11 +117,15 @@ export default async function LeadsPage({ searchParams }: Props) {
                     <span className="font-bold group-hover:text-cta">{l.name}</span>
                     <StatusBadge status={l.status} />
                     <UrgencyBadge urgency={l.urgency} />
+                    <CrmBadge crm={l.crm} />
                   </span>
                   <span className="mt-0.5 block text-[0.88rem] text-muted">
                     {[l.appliance, l.zip && `ZIP ${l.zip}`].filter(Boolean).join(" · ") || "No appliance given"}
                   </span>
                   {l.problem && <span className="mt-1 line-clamp-1 block text-[0.88rem]">{l.problem}</span>}
+                  <span className="mt-1 block text-[0.8rem] text-muted">
+                    {l.channel} · {l.formLabel}
+                  </span>
                   {l.note && <span className="mt-1 line-clamp-1 block text-[0.82rem] text-leaf">Note: {l.note}</span>}
                 </Link>
                 <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">

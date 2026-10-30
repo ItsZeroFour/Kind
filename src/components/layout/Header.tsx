@@ -16,6 +16,8 @@ type Group = { label: string; href: string; links: { href: string; label: string
 export type NavData = {
   services: { slug: string; name: string; icon: ServiceIconName }[];
   areas: { slug: string; city: string }[];
+  /** The Reviews item is hidden until there are reviews */
+  showReviews: boolean;
 };
 
 const buildGroups = ({ services, areas }: NavData): Group[] => [
@@ -55,6 +57,7 @@ export function Header({ nav }: { nav: NavData }) {
   const site = useSite();
   const { services, areas } = nav;
   const groups = buildGroups(nav);
+  const links = plainLinks.filter((l) => nav.showReviews || l.href !== "/reviews");
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -76,7 +79,7 @@ export function Header({ nav }: { nav: NavData }) {
         </div>
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-line bg-surface">
+      <header data-site-header className="sticky top-0 z-50 border-b border-line bg-surface">
         <div className="container-x flex min-h-[68px] items-center gap-4">
           <Logo logo={site.logo} name={site.name} className="mr-auto" />
 
@@ -102,7 +105,7 @@ export function Header({ nav }: { nav: NavData }) {
                 </div>
               </div>
             ))}
-            {plainLinks.map((l) => (
+            {links.map((l) => (
               <Link key={l.href} href={l.href} className={`${navItem} ${isActive(l.href) ? "text-leaf" : ""}`}>
                 {l.label}
               </Link>
@@ -164,7 +167,7 @@ export function Header({ nav }: { nav: NavData }) {
               </details>
               {[
                 { href: "/residential-appliance-repair", label: "Residential repair" },
-                ...plainLinks,
+                ...links,
                 { href: "/contact", label: "Contact" },
               ].map((l) => (
                 <Link key={l.href} href={l.href} className="block border-b border-line py-3.5 font-bold no-underline">

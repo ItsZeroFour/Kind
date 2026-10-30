@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getAreas, getServices } from "@/content/store";
+import { getAreas, getServices, hasReviews } from "@/content/store";
 import { absoluteUrl } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -20,11 +20,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/pricing", 0.8),
     page("/service-areas", 0.8),
     ...getAreas().map((a) => page(`/service-areas/${a.slug}`, a.primary ? 0.9 : 0.7)),
-    page("/reviews", 0.6, "weekly"),
+    ...(hasReviews() ? [page("/reviews", 0.6, "weekly")] : []),
     page("/about", 0.5),
     page("/faq", 0.5),
     page("/contact", 0.7),
     page("/book", 0.7),
     page("/privacy-policy", 0.2, "yearly"),
+    page("/terms", 0.2, "yearly"),
   ];
 }

@@ -14,12 +14,13 @@ import {
   Microwave,
   Refrigerator,
   Snowflake,
+  Sparkles,
   WashingMachine,
   Wind,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import type { FieldErrors } from "@/lib/leads";
+import { CONSENT_ERROR, PHONE_ERROR, normalizeUSPhone, type FieldErrors } from "@/lib/leads";
 import { getAttribution, track } from "@/lib/tracking";
 import { useSite } from "@/components/providers/SiteProvider";
 import { PhoneLink } from "@/components/ui/PhoneLink";
@@ -43,6 +44,7 @@ const applianceIcons: Record<string, LucideIcon> = {
   microwave: Microwave,
   icemaker: Box,
   commercial: Building2,
+  kit: Sparkles,
   other: Wrench,
 };
 
@@ -51,6 +53,16 @@ function formatPhone(v: string) {
   if (d.length < 4) return d;
   if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+/** One id per filled-in request: the server keeps the first copy and drops repeats. */
+function newSubmissionId() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
 function StepTitle({ n, children }: { n: number; children: React.ReactNode }) {
@@ -79,8 +91,9 @@ export function LeadForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [phone, setPhone] = useState("");
   const [appliance, setAppliance] = useState(defaultAppliance);
-  const [customerType, setCustomerType] = useState(defaultCustomerType);
+  const [consent, setConsent] = useState(false);
   const started = useRef(false);
+  const submissionId = useRef("");
   const compact = variant === "compact";
   // Visitor's local date (toISOString is UTC, which is already "tomorrow" on Oregon evenings).
   const [today, setToday] = useState<string>();
@@ -103,10 +116,27 @@ export function LeadForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (status === "sending") return;
+    const data = Object.fromEntries(new FormData(e.currentTarget));
+
+    const invalid: FieldErrors = {};
+    if (String(data.name ?? "").trim().length < 2) invalid.name = "Please enter your name.";
+    if (!normalizeUSPhone(phone)) invalid.phone = PHONE_ERROR;
+    if (!consent) invalid.consent = CONSENT_ERROR;
+    if (Object.keys(invalid).length) {
+      setErrors(invalid);
+      setStatus("error");
+      document.getElementById(id(Object.keys(invalid)[0]))?.focus();
+      return;
+    }
+
     setStatus("sending");
     setErrors({});
+    submissionId.current ||= newSubmissionId();
     const payload: Record<string, unknown> = {
-      ...Object.fromEntries(new FormData(e.currentTarget)),
+      ...data,
+      consent,
+      submissionId: submissionId.current,
       formId,
       pageUrl: window.location.href,
       attribution: getAttribution(),
@@ -168,7 +198,7 @@ export function LeadForm({
           autoComplete="tel-national"
           required
           className="field"
-          placeholder="(503) 000-0000"
+          placeholder="(___) ___-____"
           value={phone}
           onChange={(e) => setPhone(formatPhone(e.target.value))}
           {...a11y("phone")}
@@ -219,11 +249,40 @@ export function LeadForm({
         )}
       </button>
 
+      <div>
+        <label htmlFor={id("consent")} className="flex cursor-pointer items-start gap-2.5 text-[0.8rem] leading-relaxed text-muted">
+          <input
+            id={id("consent")}
+            name="consent"
+            type="checkbox"
+            required
+            checked={consent}
+            onChange={(e) => {
+              setConsent(e.target.checked);
+              if (e.target.checked && errors.consent) setErrors(({ consent: _, ...rest }) => rest);
+            }}
+            className="mt-0.5 size-[1.15rem] shrink-0 cursor-pointer accent-[var(--leaf)]"
+            {...a11y("consent")}
+          />
+          <span>
+            {f.consentText} See our{" "}
+            <a href="/privacy-policy" target="_blank" rel="noopener" className="font-semibold text-ink underline">
+              Privacy Policy
+            </a>{" "}
+            and{" "}
+            <a href="/terms" target="_blank" rel="noopener" className="font-semibold text-ink underline">
+              Terms
+            </a>
+            .
+          </span>
+        </label>
+        {err("consent")}
+      </div>
+
       <p className="flex items-start gap-2 text-[0.8rem] leading-relaxed text-muted">
         <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         <span>
-          ${customerType === "commercial" ? site.pricing.commercialServiceCall : site.pricing.serviceCall} service call
-          {site.pricing.creditedOnRepair && ", credited toward the repair"}.{f.note && ` ${f.note}`}
+          {[f.creditNote, f.note].filter(Boolean).join(" ")}
           {f.callPrompt && (
             <>
               {" "}
@@ -284,6 +343,14 @@ export function LeadForm({
               ))}
             </select>
           </div>
+          {f.compactComment && (
+            <div className="min-[420px]:col-span-2">
+              <label htmlFor={id("problem")} className="field-label">
+                What&apos;s going on? <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <textarea id={id("problem")} name="problem" rows={2} className="field resize-y" placeholder="Noises, error codes, leaks…" />
+            </div>
+          )}
         </div>
         {footer}
       </form>
@@ -334,7 +401,6 @@ export function LeadForm({
                     name="customerType"
                     value={t}
                     defaultChecked={t === defaultCustomerType}
-                    onChange={() => setCustomerType(t)}
                     className="peer sr-only"
                   />
                   <span className={`${choice} min-h-12 items-center justify-center px-3 text-[0.95rem] font-semibold`}>

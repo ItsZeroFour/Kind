@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CircleCheck, Clock, MapPin, PawPrint, Plus, ShieldCheck, Star, Tag } from "lucide-react";
-import { bookHref, fill, getAreas, getBrands, getContent, getReviews, getServices, getSite } from "@/content/store";
+import { bookHref, fill, getAreas, getBrands, getContent, getIntegrations, getReviews, getServices, getSite, hasReviews } from "@/content/store";
 import type { Review } from "@/content/reviews";
 import type { Faq } from "@/content/faqs";
 import { faqSchema } from "@/lib/schema";
@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { Icon } from "@/components/ui/Icon";
 import { PhoneLink } from "@/components/ui/PhoneLink";
 import { Photo } from "@/components/ui/Photo";
+import { EmbedWidget } from "@/components/ui/EmbedWidget";
 import { ServiceIcon } from "@/components/ui/ServiceIcon";
 import { TrackedLink } from "@/components/ui/TrackedLink";
 
@@ -46,13 +47,14 @@ export function SectionHeader({
   );
 }
 
-export function HeroChips({ price }: { price?: number }) {
+export function HeroChips() {
   const site = getSite();
+  const t = getContent().blocks;
   const chips = [
     { icon: Clock, label: site.hoursShort },
-    { icon: Tag, label: `${price !== undefined ? `$${price}` : priceOf(site)} service call` },
+    { icon: Tag, label: fill(t.heroChipPrice, site) },
     { icon: ShieldCheck, label: site.promises.warranty },
-    { icon: PawPrint, label: getContent().blocks.heroChipPets },
+    { icon: PawPrint, label: t.heroChipPets },
   ].filter((c) => c.label);
   return (
     <ul className="flex flex-wrap gap-2">
@@ -86,7 +88,6 @@ export function PageHero({
   children,
   aside,
   hideCtas = false,
-  chipsPrice,
 }: {
   eyebrow?: string;
   title: string;
@@ -95,7 +96,6 @@ export function PageHero({
   children?: React.ReactNode;
   aside?: React.ReactNode;
   hideCtas?: boolean;
-  chipsPrice?: number;
 }) {
   return (
     <section className="on-brand relative overflow-hidden">
@@ -112,7 +112,7 @@ export function PageHero({
             (!hideCtas && (
               <>
                 <HeroCtas location="page_hero" />
-                <HeroChips price={chipsPrice} />
+                <HeroChips />
               </>
             ))}
         </div>
@@ -344,17 +344,17 @@ export function PricingSection() {
             <p className="text-sm font-bold tracking-[0.1em] text-muted uppercase">How the service call works</p>
             <dl className="mt-5 flex flex-col">
               <div className="flex items-baseline justify-between gap-4 border-b border-line pb-4">
-                <dt className="font-semibold">Service call &amp; diagnosis</dt>
+                <dt className="font-semibold">{fill(t.rowCall, site)}</dt>
                 <dd className="m-0 font-display text-2xl font-bold">{price}</dd>
               </div>
               {site.pricing.creditedOnRepair && (
                 <>
                   <div className="flex items-baseline justify-between gap-4 border-b border-dashed border-line py-4">
-                    <dt className="font-semibold">You approve the repair</dt>
+                    <dt className="font-semibold">{fill(t.rowApprove, site)}</dt>
                     <dd className="m-0 font-display text-2xl font-bold text-ok">−{price}</dd>
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-4 rounded-[14px] bg-brand px-5 py-4 text-on-brand">
-                    <dt className="font-semibold">Diagnosis cost when we fix it</dt>
+                    <dt className="font-semibold">{fill(t.rowTotal, site)}</dt>
                     <dd className="m-0 font-display text-[2.6rem] leading-none font-bold text-peach">$0</dd>
                   </div>
                 </>
@@ -487,7 +487,8 @@ export function ReviewsSection({ limit = 3 }: { limit?: number }) {
   const site = getSite();
   const t = getContent().blocks.reviews;
   const reviews = getReviews();
-  if (reviews.length === 0) return null;
+  const widget = getIntegrations().reviewsWidget;
+  if (!hasReviews()) return null;
   return (
     <section className="section section-alt">
       <div className="container-x">
@@ -504,11 +505,14 @@ export function ReviewsSection({ limit = 3 }: { limit?: number }) {
             )}
           </div>
         </div>
-        <div className="grid gap-3.5 md:grid-cols-3">
-          {reviews.slice(0, limit).map((r, i) => (
-            <ReviewCard key={i} r={r} />
-          ))}
-        </div>
+        {reviews.length > 0 && (
+          <div className="grid gap-3.5 md:grid-cols-3">
+            {reviews.slice(0, limit).map((r, i) => (
+              <ReviewCard key={i} r={r} />
+            ))}
+          </div>
+        )}
+        {widget.length > 0 && <EmbedWidget items={widget} className={reviews.length > 0 ? "mt-6" : ""} />}
       </div>
     </section>
   );

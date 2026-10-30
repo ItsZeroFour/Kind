@@ -1,7 +1,11 @@
 import "server-only";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { getDb } from "@/lib/db";
+import { parseEmbed } from "@/lib/embed";
 import { integrations as envIntegrations } from "@/config/site";
-import { defaults, mergeDeep, parsePhone, type Content, type SectionKey } from "./model";
+import { defaultChatWidget, defaults, mergeDeep, parsePhone, type Content, type SectionKey } from "./model";
+import type { Service } from "./services";
 
 let cache: { version: number; content: Content } | undefined;
 
@@ -17,6 +21,14 @@ export function getContent(): Content {
   const content = Object.fromEntries(
     (Object.keys(defaults) as SectionKey[]).map((k) => [k, mergeDeep(defaults[k], saved[k])]),
   ) as Content;
+  // Services saved before the page type existed: the maintenance page is recognised by its address.
+  content.services = {
+    ...content.services,
+    items: content.services.items.map((s) => ({
+      ...s,
+      pageType: s.pageType ?? (/maintenance/.test(s.slug) ? "maintenance" : "repair"),
+    })),
+  };
   cache = { version, content };
   return content;
 }
@@ -86,13 +98,33 @@ export const getFaqs = () => getContent().faqs.items;
 export const getReviews = () => getContent().reviews.items;
 export const getPrices = () => getContent().prices;
 
+export const isMaintenance = (s: Pick<Service, "pageType">) => s.pageType === "maintenance";
+
+/** Real reviews exist, either typed in Reviews or from an embedded widget. Until then the reviews block, page and menu item stay hidden. */
+export const hasReviews = () => getReviews().length > 0 || getIntegrations().reviewsWidget.length > 0;
+
 const fallbackPhone = parsePhone(defaults.business.phone)!;
+
+// The host answers on the bare domain and 301s www to it, so canonical URLs never use www.
+const siteUrl = () =>
+  (process.env.NEXT_PUBLIC_SITE_URL || "https://kindappliancerepair.com").replace(/\/$/, "").replace("://www.", "://");
+
+const bundledHero = { desktop: "/images/hero/kind-hero-desktop.webp", mobile: "/images/hero/kind-hero-mobile.webp" };
+const bundled = (p: string) => (existsSync(path.join(/*turbopackIgnore: true*/ process.cwd(), "public", p)) ? p : "");
+
+function heroBackground(bg: Content["brand"]["heroBg"]) {
+  if (!bg.enabled) return null;
+  const desktop = bg.desktop || bundled(bundledHero.desktop);
+  const mobile = bg.mobile || bundled(bundledHero.mobile) || desktop;
+  if (!desktop && !mobile) return null;
+  return { desktop: desktop || mobile, mobile, shadeDesktop: bg.shadeDesktop, shadeMobile: bg.shadeMobile };
+}
 
 export function getSite() {
   const { business: b, brand } = getContent();
   return {
     ...b,
-    url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.kindappliancerepair.com").replace(/\/$/, ""),
+    url: siteUrl(),
     phone: parsePhone(b.phone) ?? fallbackPhone,
     geo: { lat: 45.5229, lng: -122.9898 },
     hours: [
@@ -105,6 +137,7 @@ export function getSite() {
     logo: { image: brand.logo || "/images/logo.png", custom: Boolean(brand.logo), word: brand.wordmark, sub: brand.wordmarkSub },
     technician: brand.technician,
     photos: { hero: brand.photos.hero, work: brand.photos.work, pets: [brand.photos.pet1, brand.photos.pet2] },
+    heroBg: heroBackground(brand.heroBg),
   };
 }
 export type Site = ReturnType<typeof getSite>;
@@ -125,11 +158,24 @@ export function fill(text: string, site: Site = getSite(), extra: Record<string,
   return text.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
 }
 
+/** Maintenance kits from Prices (Kitchen Care Kit, …): their names are form choices like the appliances. */
+export function getKits() {
+  return getPrices()
+    .categories.filter((c) => c.segment === "maintenance")
+    .map((c) => c.title.trim())
+    .filter(Boolean);
+}
+
 export function getBookingForm() {
+  const site = getSite();
   const f = getContent().form;
   const u = f.urgency;
+  const appliances = f.appliances.length ? f.appliances : defaults.form.appliances;
+  const kits = f.includeKits ? getKits().filter((k) => !appliances.some((a) => a.name === k)) : [];
   return {
-    appliances: f.appliances.length ? f.appliances : defaults.form.appliances,
+    appliances: [...appliances, ...kits.map((name) => ({ name, icon: "kit" }))],
+    creditNote: site.pricing.creditedOnRepair ? fill(f.creditNote, site) : "",
+    compactComment: f.compactComment,
     urgency: [
       { value: "standard", label: u.standard.label, hint: u.standard.hint },
       ...(u.today.enabled ? [{ value: "today", label: u.today.label, hint: u.today.hint }] : []),
@@ -143,6 +189,7 @@ export function getBookingForm() {
     submitCompact: f.submitCompact,
     note: f.note,
     callPrompt: f.callPrompt,
+    consentText: fill(f.consentText || defaults.form.consentText, site),
   };
 }
 
@@ -154,6 +201,11 @@ export function applianceFor(service: { icon: string }) {
 export function bookHref(service?: { icon: string }) {
   const a = service && applianceFor(service);
   return a ? `/book?appliance=${encodeURIComponent(a)}` : "/book";
+}
+
+/** “Book this service” on a maintenance kit: the form opens with the kit chosen, and the lead shows it came from a kit button. */
+export function kitHref(kit: string, from: string) {
+  return `/book?appliance=${encodeURIComponent(kit.trim())}&from=${encodeURIComponent(`kit_${from}`)}`;
 }
 
 /** Admin values win; empty fields fall back to the server env. */
@@ -168,9 +220,22 @@ export function getIntegrations() {
     googleSiteVerification: c.googleSiteVerification || envIntegrations.googleSiteVerification,
     bookingUrl: c.bookingUrl || envIntegrations.bookingUrl,
     callTrackingScript: envIntegrations.callTrackingScript,
-    chatWidgetSrc: envIntegrations.chatWidgetSrc,
+    chatWidget: !c.chatEnabled
+      ? []
+      : parseEmbed(
+          c.chatWidget.trim() ||
+            (envIntegrations.chatWidgetSrc ? `<script src="${envIntegrations.chatWidgetSrc}"></script>` : defaultChatWidget),
+        ),
+    reviewsWidget: parseEmbed(c.reviewsWidget),
+    redirects: c.redirects,
     leadEmail: c.leadEmail || process.env.LEAD_NOTIFY_EMAIL || "",
   };
+}
+
+/** Where leads go in the CRM. Server only: every POST there starts paid texts and calls. */
+export function getCrmWebhook() {
+  const url = (getContent().integrations.crmWebhookUrl || process.env.LEAD_WEBHOOK_URL || "").split(",")[0].trim();
+  return /^https?:\/\/\S+$/i.test(url) ? url : "";
 }
 
 export function getPublicSite() {

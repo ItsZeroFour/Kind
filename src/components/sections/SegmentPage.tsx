@@ -37,7 +37,6 @@ export function SegmentPage({ segment }: { segment: Segment }) {
         title={title}
         intro={fill(t.intro, site)}
         crumbs={[{ name: title.replace(/ in .*/, ""), path }]}
-        chipsPrice={segment === "commercial" ? site.pricing.commercialServiceCall : undefined}
       />
 
       <section className="section">

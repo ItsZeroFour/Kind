@@ -1,33 +1,32 @@
 import "server-only";
-import { getIntegrations, getSite } from "@/content/store";
+import { getBookingForm, getIntegrations, getSite } from "@/content/store";
+import { campaignTags } from "./lead-labels";
 import type { Lead } from "./leads";
 
-type Result = { destination: string; ok: boolean; error?: string };
+const urgencyText = (v?: string) => (v ? (getBookingForm().urgency.find((u) => u.value === v)?.label ?? v) : "");
 
-async function toWebhooks(lead: Lead): Promise<Result[]> {
-  const urls = (process.env.LEAD_WEBHOOK_URL ?? "")
-    .split(",")
-    .map((u) => u.trim())
-    .filter(Boolean);
-  return Promise.all(
-    urls.map(async (url) => {
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(process.env.LEAD_WEBHOOK_SECRET ? { "X-Webhook-Secret": process.env.LEAD_WEBHOOK_SECRET } : {}),
-          },
-          body: JSON.stringify({ type: "lead.created", lead }),
-          signal: AbortSignal.timeout(8000),
-        });
-        return { destination: `webhook:${new URL(url).host}`, ok: res.ok, error: res.ok ? undefined : `HTTP ${res.status}` };
-      } catch (e) {
-        return { destination: "webhook", ok: false, error: String(e) };
-      }
-    }),
-  );
+/** The lead in plain words for the notification email: what, how urgent, where from. */
+export function leadSummary(lead: Lead) {
+  return {
+    form: lead.formLabel ?? lead.formId ?? "",
+    page: lead.pageUrl ?? "",
+    name: lead.name,
+    phone: lead.phoneE164 ?? lead.phone,
+    appliance: lead.kit ? "" : (lead.applianceType ?? ""),
+    kit: lead.kit ?? "",
+    brand: lead.brand ?? "",
+    urgency: urgencyText(lead.urgency),
+    zip: lead.zip ?? "",
+    comment: lead.problem ?? "",
+    preferred_date: lead.preferredDate ?? "",
+    preferred_time: lead.preferredTime ?? "",
+    customer_type: lead.customerType ?? "",
+    source: lead.channel ?? "",
+    ...campaignTags(lead.attribution),
+  };
 }
+
+type Result = { destination: string; ok: boolean; error?: string };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -35,19 +34,23 @@ async function toEmail(lead: Lead): Promise<Result[]> {
   const key = process.env.RESEND_API_KEY;
   const to = getIntegrations().leadEmail;
   if (!key || !to) return [];
+  const s = leadSummary(lead);
   const rows: [string, string | undefined][] = [
     ["Name", lead.name],
-    ["Phone", lead.phone],
+    ["Phone", s.phone],
     ["Email", lead.email],
     ["Customer", lead.customerType],
-    ["Appliance", lead.applianceType],
+    ["Maintenance kit", s.kit],
+    ["Appliance", s.appliance],
     ["Brand", lead.brand],
     ["ZIP", lead.zip],
-    ["Urgency", lead.urgency],
+    ["Urgency", s.urgency],
     ["Preferred date", lead.preferredDate],
     ["Preferred time", lead.preferredTime],
-    ["Problem", lead.problem],
-    ["Form", lead.formId],
+    ["Comment", lead.problem],
+    ["Source", s.source],
+    ["UTM", [s.utm_source, s.utm_medium, s.utm_campaign, s.utm_term, s.utm_content].filter(Boolean).join(" / ")],
+    ["Form", s.form],
     ["Page", lead.pageUrl],
   ];
   const html = `<h2>New service request</h2><table cellpadding="6">${rows
@@ -62,7 +65,7 @@ async function toEmail(lead: Lead): Promise<Result[]> {
         from: process.env.LEAD_FROM_EMAIL || `${getSite().name} <onboarding@resend.dev>`,
         to: to.split(",").map((s) => s.trim()),
         reply_to: lead.email,
-        subject: `New lead: ${lead.applianceType ?? "Appliance"}, ${lead.name} (${lead.zip ?? "no ZIP"})`,
+        subject: `New lead: ${lead.applianceType ?? "Appliance"}, ${lead.name} (${lead.zip ?? "no ZIP"})${s.urgency ? ` · ${s.urgency}` : ""}`,
         html,
       }),
       signal: AbortSignal.timeout(8000),
@@ -73,12 +76,13 @@ async function toEmail(lead: Lead): Promise<Result[]> {
   }
 }
 
-const destinations = [toWebhooks, toEmail];
+// The CRM gets every lead through lib/crm.ts (with retries); this is for the optional extras.
+const destinations = [toEmail];
 
 export async function dispatchLead(lead: Lead, { saved = false } = {}) {
   const results = (await Promise.all(destinations.map((d) => d(lead)))).flat();
   if (results.length === 0 && !saved) {
-    console.warn("[lead] No destinations configured (LEAD_WEBHOOK_URL / RESEND_API_KEY). Lead:", JSON.stringify(lead));
+    console.warn("[lead] Not saved and no email set up (RESEND_API_KEY). Lead:", JSON.stringify(lead));
   }
   for (const r of results.filter((r) => !r.ok)) {
     console.error(`[lead] ${r.destination} failed: ${r.error}. Lead:`, JSON.stringify(lead));

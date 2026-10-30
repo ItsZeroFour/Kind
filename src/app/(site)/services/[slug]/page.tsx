@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Check, MapPin } from "lucide-react";
-import { applianceFor, bookHref, fill, getAreas, getBrands, getContent, getFaqs, getService, getServices, getSite } from "@/content/store";
+import { applianceFor, bookHref, fill, getAreas, getBrands, getContent, getFaqs, getService, getServices, getSite, isMaintenance } from "@/content/store";
 import type { Service } from "@/content/services";
 import { pageMetadata } from "@/lib/seo";
 import { serviceSchema } from "@/lib/schema";
@@ -14,10 +14,15 @@ import { CtaBand, FaqSection, HeroChips, HeroCtas, PageHero, PricingSection, Pro
 
 type Props = { params: Promise<{ slug: string }> };
 
+/** Page phrases: the repair template, with the maintenance template on top for maintenance pages. */
 const phrases = (service: Service) => {
   const site = getSite();
   const vars = { service: service.name, appliance: service.appliance };
-  return { t: getContent().pages.service, f: (text: string) => fill(text, site, vars) };
+  const { service: repair, maintenance } = getContent().pages;
+  const t = isMaintenance(service)
+    ? { ...repair, introTitle: maintenance.introTitle, formTitle: maintenance.formTitle, relatedTitle: maintenance.relatedTitle, ctaTitle: maintenance.ctaTitle }
+    : repair;
+  return { t, f: (text: string) => fill(text, site, vars) };
 };
 
 export const dynamicParams = true;
@@ -45,6 +50,7 @@ export default async function ServicePage({ params }: Props) {
   const path = `/services/${service.slug}`;
   const related = getServices().filter((s) => s.slug !== service.slug).slice(0, 4);
   const { t, f } = phrases(service);
+  const maintenance = isMaintenance(service);
 
   return (
     <>
@@ -58,7 +64,7 @@ export default async function ServicePage({ params }: Props) {
           { name: service.name, path },
         ]}
       >
-        <HeroCtas location={`service_${service.slug}`} book={bookHref(service)} />
+        <HeroCtas location={`service_${service.slug}`} book={maintenance ? "/book" : bookHref(service)} />
         <HeroChips />
       </PageHero>
 
@@ -133,7 +139,7 @@ export default async function ServicePage({ params }: Props) {
             <div className="card-raised">
               <h2 className="text-[1.4rem]">{f(t.formTitle)}</h2>
               {t.formIntro && <p className="mt-1 mb-4 text-[0.93rem] text-muted">{f(t.formIntro)}</p>}
-              <LeadForm formId={`service_${service.slug}`} variant="compact" defaultAppliance={applianceFor(service)} />
+              <LeadForm formId={`service_${service.slug}`} variant="compact" defaultAppliance={maintenance ? "" : applianceFor(service)} />
             </div>
             <div className="on-brand rounded-[18px] p-6">
               <p className="font-display text-lg font-bold">{f(t.callTitle)}</p>
@@ -150,7 +156,7 @@ export default async function ServicePage({ params }: Props) {
 
       <ServicePrices service={service} />
       <Process />
-      <PricingSection />
+      {!maintenance && <PricingSection />}
 
       <section className="section !pt-0">
         <div className="container-x">

@@ -7,6 +7,8 @@ out
 next-env.d.ts
 .vercel
 
+/docs
+
 # Admin panel data: SQLite database and uploaded images (back this folder up)
 /data
 

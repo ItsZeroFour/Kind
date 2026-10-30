@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { validateLead, type Lead } from "@/lib/leads";
+import { getBookingForm, getKits } from "@/content/store";
+import { crmQueue, deliverToCrm, postToCrmOnce, startCrmRetries } from "@/lib/crm";
+import { normalizeUSPhone, validateLead, type Lead } from "@/lib/leads";
+import { describeForm, describeSource } from "@/lib/lead-labels";
 import { dispatchLead } from "@/lib/lead-dispatch";
-import { saveLead, setLeadDelivery } from "@/lib/lead-store";
+import { isDuplicateLead, saveLead, setLeadDelivery } from "@/lib/lead-store";
 import { createLimiter } from "@/lib/rate-limit";
 import { bodyTooLarge, clientIp, isCrossSite } from "@/lib/request";
 
@@ -34,24 +37,35 @@ export async function POST(req: Request) {
   const { data, errors } = validateLead(body);
   if (!data) return NextResponse.json({ ok: false, errors }, { status: 422 });
 
-  const { website, ...fields } = data;
+  const { website, submissionId, ...fields } = data;
   const lead: Lead = {
     ...fields,
-    id: crypto.randomUUID(),
+    id: submissionId ?? crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     source: "website",
     userAgent: req.headers.get("user-agent") ?? undefined,
+    phoneE164: normalizeUSPhone(fields.phone) ?? undefined,
+    formLabel: describeForm(fields.formId, fields.pageUrl),
+    channel: describeSource(fields.attribution),
+    kit: fields.applianceType && getKits().includes(fields.applianceType) ? fields.applianceType : undefined,
+    consentText: getBookingForm().consentText,
   };
 
   if (website) return NextResponse.json({ ok: true, id: lead.id });
 
+  startCrmRetries();
   let saved = false;
   try {
-    saveLead(lead);
+    saveLead(lead, crmQueue(lead));
     saved = true;
   } catch (e) {
+    // The same submission again: the first one is saved and on its way to the CRM, so nothing is sent twice.
+    if (isDuplicateLead(e)) return NextResponse.json({ ok: true, id: lead.id });
     console.error("[lead] could not save to the database:", e);
   }
+
+  if (saved) await deliverToCrm(lead.id);
+  else await postToCrmOnce(lead);
 
   const results = await dispatchLead(lead, { saved });
   if (saved) {

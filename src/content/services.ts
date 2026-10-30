@@ -21,6 +21,8 @@ export type Service = {
   problems: string[];
   types: string[];
   faqs: { q: string; a: string }[];
+  /** "maintenance" swaps the repair phrases for the maintenance template. Filled in by the store when missing. */
+  pageType?: "repair" | "maintenance";
 };
 
 export const defaultServices: Service[] = [
