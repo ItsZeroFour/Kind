@@ -7,7 +7,10 @@ import { integrations as envIntegrations } from "@/config/site";
 import { defaultChatWidget, defaults, mergeDeep, parsePhone, type Content, type SectionKey } from "./model";
 import type { Service } from "./services";
 
-let cache: { version: number; content: Content } | undefined;
+// One cache per process, like the database connection. Route handlers (/api/lead) and the admin are separate
+// bundles with their own copy of this module, and data_version only changes on writes from *other* connections,
+// so a per-module cache kept serving the settings from before an admin save (e.g. an empty CRM webhook).
+const g = globalThis as unknown as { __kindContent?: { version: number; content: Content } };
 
 function dataVersion() {
   return (getDb().prepare("PRAGMA data_version").get() as { data_version: number }).data_version;
@@ -15,6 +18,7 @@ function dataVersion() {
 
 export function getContent(): Content {
   const version = dataVersion();
+  const cache = g.__kindContent;
   if (cache && cache.version === version) return cache.content;
   const rows = getDb().prepare("SELECT key, value FROM content").all() as { key: string; value: string }[];
   const saved = Object.fromEntries(rows.map((r) => [r.key, safeParse(r.value)]));
@@ -29,7 +33,7 @@ export function getContent(): Content {
       pageType: s.pageType ?? (/maintenance/.test(s.slug) ? "maintenance" : "repair"),
     })),
   };
-  cache = { version, content };
+  g.__kindContent = { version, content };
   return content;
 }
 
@@ -53,12 +57,12 @@ export function saveSection(key: SectionKey, value: unknown, userId: number) {
     db.exec("ROLLBACK");
     throw e;
   }
-  cache = undefined;
+  g.__kindContent = undefined;
 }
 
 export function resetSection(key: SectionKey) {
   getDb().prepare("DELETE FROM content WHERE key = ?").run(key);
-  cache = undefined;
+  g.__kindContent = undefined;
 }
 
 export function sectionMeta() {
