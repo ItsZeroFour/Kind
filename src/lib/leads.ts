@@ -13,9 +13,8 @@ export type LeadInput = {
   formId?: string;
   pageUrl?: string;
   attribution?: unknown;
-  /** The required “calls and texts” checkbox */
   consent?: boolean;
-  /** Made by the form once per filled-in request, so a double click or a retry never creates a second lead */
+  // dedupe key from the form
   submissionId?: string;
   website?: string;
 };
@@ -25,15 +24,11 @@ export type Lead = Omit<LeadInput, "website" | "submissionId"> & {
   createdAt: string;
   source: "website";
   userAgent?: string;
-  /** +15035550142 */
+  // +15035550142
   phoneE164?: string;
-  /** Which form, in words: “Home page, first screen form”, “Maintenance kit button on /pricing”… */
   formLabel?: string;
-  /** Where the visitor came from, in words: “Google Ads · campaign …”, “Meta ads”, “Google search (organic)”… */
   channel?: string;
-  /** The maintenance kit chosen, when the appliance choice is a kit */
   kit?: string;
-  /** The consent text the customer saw next to the checkbox */
   consentText?: string;
 };
 
@@ -46,7 +41,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const clean = (v: unknown, max = 500) => (typeof v === "string" ? v.trim().slice(0, max) : undefined) || undefined;
 
-/** Any way of typing a US number → +1XXXXXXXXXX, or null. The CRM texts and calls only this format. */
+// any US format -> +1XXXXXXXXXX (or null)
 export function normalizeUSPhone(input: string) {
   const d = String(input).replace(/\D/g, "");
   if (d.length === 10) return "+1" + d;

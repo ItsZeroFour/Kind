@@ -11,12 +11,12 @@ declare global {
   }
 }
 
-/** Phones: where the “Call / Book now” bar is shown (md:hidden). */
+// same breakpoint as the mobile call bar
 const PHONE = "(max-width: 767.98px)";
 const OPENED_KEY = "kind_chat_opened";
 
-// Goes into the widget's shadow root. On phones: no standard button and no greeting bubble (the site shows its own icon),
-// and the open chat fits between the header and the bottom bar instead of covering them.
+// injected into the widget shadow root: hide default bubble on phones,
+// keep the open chat between header and call bar
 const PHONE_CSS = `@media ${PHONE} {
   .lc_text-widget--bubble, .lc_text-widget--prompt { display: none !important; }
   .lc_text-widget--mobile {
@@ -47,7 +47,6 @@ const barHeight = () => {
   return bar && getComputedStyle(bar).display !== "none" ? bar.getBoundingClientRect().height : 0;
 };
 
-/** Where the open chat may go: below the sticky header, above the bottom bar. */
 function syncInsets() {
   const header = document.querySelector<HTMLElement>("[data-site-header]");
   const top = Math.max(0, header?.getBoundingClientRect().bottom ?? 0) + 8;
@@ -56,10 +55,8 @@ function syncInsets() {
   s.setProperty("--kind-chat-bottom", `${Math.round(barHeight() + 8)}px`);
 }
 
-/**
- * The chat from Integrations. For the ProsBuddy / LeadConnector chat on phones, the standard button would lie on “Book now”,
- * so it is replaced by a small orange icon right above the bottom bar that opens the chat through the widget's JS API.
- */
+// on phones the default LC button overlaps "Book now", so we show our own icon
+// and open the chat via leadConnector.chatWidget api
 export function ChatWidget({ items }: { items: EmbedEl[] }) {
   const leadConnector = items.some((i) => i.tag === "script" && /^https:\/\/([\w-]+\.)*leadconnectorhq\.com\//.test(i.attrs.src ?? ""));
   const [open, setOpen] = useState(false);
@@ -125,7 +122,7 @@ export function ChatWidget({ items }: { items: EmbedEl[] }) {
     syncInsets();
     const api = window.leadConnector?.chatWidget;
     if (api?.isLoaded && api.openWidget) api.openWidget();
-    // The widget loads on the first interaction; it opens as soon as it is ready.
+    // not loaded yet - open once ready
     else wantOpen.current = true;
   };
 

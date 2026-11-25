@@ -533,7 +533,7 @@ const form = {
 };
 export type FormContent = typeof form;
 
-/** The ProsBuddy (LeadConnector) chat with the AI bot, set up by the owner. */
+// default ProsBuddy chat
 export const defaultChatWidget =
   '<script src="https://widgets.leadconnectorhq.com/loader.js" data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js" data-widget-id="6ac8c8125434ae92088e18d1"></script>';
 
@@ -548,6 +548,7 @@ const integrations = {
   leadEmail: "",
   crmWebhookUrl: "",
   reviewsWidget: "",
+  heroReviewsWidget: "",
   chatEnabled: true,
   chatWidget: defaultChatWidget,
   redirects: [
@@ -1659,6 +1660,21 @@ sections.push({
         {
           kind: "textarea",
           key: "reviewsWidget",
+          label: "Widget embed code",
+          rows: 4,
+          max: 3000,
+          help: "Only <script src=\"https://…\"> and <div> tags with their attributes are used; anything else is ignored",
+        },
+      ],
+    },
+    {
+      title: "Hero reviews widget",
+      description:
+        "A second Trustindex (or similar) widget on the first screen of every page with the Call / Book online buttons: home, services, cities, Pricing, Book, About, Commercial, Residential, also pages added later. It sits under the buttons and above the Open 24/7 / warranty chips, as wide as the text column on computers and the full width on phones. Which reviews, how many and the colors are set up in Trustindex. A “Read reviews” link to #reviews leads to the reviews block lower on the page, or to /reviews where the page has none. Empty: the first screen looks as before.",
+      fields: [
+        {
+          kind: "textarea",
+          key: "heroReviewsWidget",
           label: "Widget embed code",
           rows: 4,
           max: 3000,

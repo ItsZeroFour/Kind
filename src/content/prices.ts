@@ -14,7 +14,7 @@ export type PriceCategory = {
   slug: string;
   segment: PriceSegment;
   icon: PriceIcon;
-  /** Service page slugs where this category is shown */
+  // service slugs where it's shown
   services: string[];
   intro: string;
   items: PriceItem[];
@@ -67,7 +67,7 @@ const commercialCooling = [
 ];
 
 export const defaultPriceCategories: PriceCategory[] = [
-  // Maintenance & cleaning: shown as package cards
+  // maintenance (package cards)
   {
     title: "Fridge Coil & Dryer Cleaning",
     slug: "coil-dryer-cleaning",
@@ -109,7 +109,7 @@ export const defaultPriceCategories: PriceCategory[] = [
     ],
   },
 
-  // Residential repair
+  // residential
   {
     title: "Refrigerator, Freezer & Wine Cooler",
     slug: "refrigerator",
@@ -215,7 +215,7 @@ export const defaultPriceCategories: PriceCategory[] = [
     items: hood,
   },
 
-  // Commercial
+  // commercial
   {
     title: "Appliance Installation",
     slug: "installation",
@@ -287,7 +287,7 @@ export const defaultPriceCategories: PriceCategory[] = [
     items: hood,
   },
 
-  // High-end
+  // high-end
   {
     title: "High-End & Built-In Appliances",
     slug: "high-end",

@@ -6,7 +6,7 @@ export const generateMetadata = () => editableMetadata("privacy", "/privacy-poli
 
 export default function PrivacyPage() {
   const t = getContent().pages.privacy;
-  // The SMS section (required for SMS registration) goes before “Contact us”, or last.
+  // SMS section goes before "Contact us" (needed for sms registration)
   const contact = t.blocks.findIndex((b) => /^contact/i.test(b.title));
   const at = contact === -1 ? t.blocks.length : contact;
   const blocks = [...t.blocks.slice(0, at), t.sms, ...t.blocks.slice(at)];

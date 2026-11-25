@@ -69,7 +69,6 @@ function Note({ text }: { text: string }) {
   );
 }
 
-/** A card with one appliance's price list */
 export function PriceCard({
   category,
   service,
@@ -78,7 +77,6 @@ export function PriceCard({
 }: {
   category: PriceCategory;
   service?: Service;
-  /** A “Book this service” button under the card (maintenance kits on service pages) */
   book?: { href: string; label: string; location: string };
   headingLevel?: 2 | 3;
 }) {
@@ -355,7 +353,6 @@ export function PriceList() {
   );
 }
 
-/** Price cards for one service page. Renders nothing when no category lists the service. */
 export function ServicePrices({ service }: { service: Service }) {
   const t = getPrices();
   const site = getSite();

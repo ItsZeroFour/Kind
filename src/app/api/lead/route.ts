@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     saveLead(lead, crmQueue(lead));
     saved = true;
   } catch (e) {
-    // The same submission again: the first one is saved and on its way to the CRM, so nothing is sent twice.
+    // duplicate submit, first one is already saved/queued
     if (isDuplicateLead(e)) return NextResponse.json({ ok: true, id: lead.id });
     console.error("[lead] could not save to the database:", e);
   }

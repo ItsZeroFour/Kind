@@ -55,7 +55,7 @@ function formatPhone(v: string) {
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
-/** One id per filled-in request: the server keeps the first copy and drops repeats. */
+// dedupe id
 function newSubmissionId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
   const b = crypto.getRandomValues(new Uint8Array(16));
@@ -95,7 +95,7 @@ export function LeadForm({
   const started = useRef(false);
   const submissionId = useRef("");
   const compact = variant === "compact";
-  // Visitor's local date (toISOString is UTC, which is already "tomorrow" on Oregon evenings).
+  // local date, toISOString is UTC (already tomorrow in Oregon evenings)
   const [today, setToday] = useState<string>();
 
   useEffect(() => {

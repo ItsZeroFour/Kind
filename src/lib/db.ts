@@ -67,7 +67,7 @@ const migrations = [
      key TEXT PRIMARY KEY,
      value TEXT NOT NULL
    );`,
-  // CRM delivery: the exact JSON sent, its state (pending → delivered | failed) and the retry schedule.
+  // crm delivery state + retries
   `ALTER TABLE leads ADD COLUMN crm_state TEXT;
    ALTER TABLE leads ADD COLUMN crm_payload TEXT;
    ALTER TABLE leads ADD COLUMN crm_attempts INTEGER NOT NULL DEFAULT 0;
@@ -96,8 +96,8 @@ function migrate(db: DatabaseSync) {
   }
 }
 
-// Keeps the admin from ADMIN_EMAIL / ADMIN_PASSWORD in sync with the env. Only acts when the env values
-// differ from the ones applied last time, so a password changed in the panel survives restarts.
+// sync admin user with ADMIN_EMAIL/ADMIN_PASSWORD, only when env changed
+// (so a password changed in the panel survives restarts)
 function syncEnvAdmin(db: DatabaseSync) {
   const email = process.env.ADMIN_EMAIL?.trim();
   const password = process.env.ADMIN_PASSWORD;
@@ -119,15 +119,13 @@ function syncEnvAdmin(db: DatabaseSync) {
 
   db.exec("BEGIN IMMEDIATE");
   try {
-    // Checked again under the write lock: parallel build workers open the database at the same time,
-    // and only the first one may create the admin.
+    // recheck under lock, build workers open the db in parallel
     const prev = readPrev();
     if (synced(prev)) {
       db.exec("COMMIT");
       return;
     }
-    // Same email → that user; otherwise the user created from the previous env email
-    // (before this sync existed: the single admin, if there is exactly one).
+    // same email -> that user, otherwise the one from the previous env email
     const target = idOf(email) ?? (prev ? idOf(prev.email) : onlyUser());
     if (target) {
       db.prepare("UPDATE users SET email = ?, password_hash = ? WHERE id = ?").run(email, hashPassword(password), target);

@@ -7,5 +7,5 @@ export type Review = {
   source: "Google" | "Yelp" | "Facebook" | "Nextdoor";
 };
 
-/** No sample reviews: invented reviews break Google and FTC rules, and a reset in the admin would bring them back. */
+// no fake sample reviews (google/ftc)
 export const defaultReviews: Review[] = [];

@@ -13,6 +13,7 @@ import {
   FaqSection,
   HeroChips,
   HeroCtas,
+  HeroReviews,
   PricingSection,
   Process,
   ReviewsSection,
@@ -48,6 +49,7 @@ export default function HomePage() {
             </h1>
             {t.heroIntro && <p className={`max-w-[56ch] text-lg ${bg ? "text-on-brand" : "text-on-brand-muted"}`}>{fill(t.heroIntro, site)}</p>}
             <HeroCtas location="hero" />
+            <HeroReviews />
             <HeroChips />
           </div>
 

@@ -5,7 +5,6 @@ import type { Lead } from "./leads";
 
 const urgencyText = (v?: string) => (v ? (getBookingForm().urgency.find((u) => u.value === v)?.label ?? v) : "");
 
-/** The lead in plain words for the notification email: what, how urgent, where from. */
 export function leadSummary(lead: Lead) {
   return {
     form: lead.formLabel ?? lead.formId ?? "",
@@ -76,7 +75,7 @@ async function toEmail(lead: Lead): Promise<Result[]> {
   }
 }
 
-// The CRM gets every lead through lib/crm.ts (with retries); this is for the optional extras.
+// crm goes through lib/crm.ts, this is just the optional extras
 const destinations = [toEmail];
 
 export async function dispatchLead(lead: Lead, { saved = false } = {}) {

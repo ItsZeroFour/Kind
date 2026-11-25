@@ -1,8 +1,5 @@
-/**
- * Third-party widget embed codes pasted in the admin (reviews, chat).
- * Nothing is injected as raw HTML: only <script src="https://…"> and <div> tags are kept, rebuilt from an
- * attribute allowlist, so a stray inline script or event handler in the pasted code never reaches the page.
- */
+// embed codes from admin (reviews, chat).
+// only <script src=https://...> and <div> with allowed attrs are kept, no inline js
 export type EmbedEl = { tag: "script" | "div"; attrs: Record<string, string> };
 
 const TAG = /<(script|div)\b([^>]*)>/gi;

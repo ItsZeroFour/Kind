@@ -4,7 +4,7 @@ import { editableMetadata } from "@/lib/seo";
 import { EmbedWidget } from "@/components/ui/EmbedWidget";
 import { CtaBand, PageHero, ReviewCard } from "@/components/sections";
 
-// Until there are reviews the page is kept out of Google: an empty page would only hurt.
+// noindex while there are no reviews
 export function generateMetadata() {
   const meta = editableMetadata("reviews", "/reviews");
   return hasReviews() ? meta : { ...meta, robots: { index: false, follow: true } };
@@ -23,6 +23,7 @@ export default function ReviewsPage() {
         title={fill(t.heading)}
         intro={any ? fill(t.intro) : undefined}
         crumbs={[{ name: "Reviews", path: "/reviews" }]}
+        reviews={false}
       >
         {site.social.googleReviews ? (
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -33,7 +34,7 @@ export default function ReviewsPage() {
         ) : undefined}
       </PageHero>
 
-      <section className="section">
+      <section id="reviews" className="section scroll-mt-20">
         <div className="container-x">
           {reviews.length > 0 && (
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">

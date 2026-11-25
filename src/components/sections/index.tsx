@@ -11,6 +11,7 @@ import { Icon } from "@/components/ui/Icon";
 import { PhoneLink } from "@/components/ui/PhoneLink";
 import { Photo } from "@/components/ui/Photo";
 import { EmbedWidget } from "@/components/ui/EmbedWidget";
+import { HeroReviewsWidget } from "@/components/ui/HeroReviewsWidget";
 import { ServiceIcon } from "@/components/ui/ServiceIcon";
 import { TrackedLink } from "@/components/ui/TrackedLink";
 
@@ -80,6 +81,12 @@ export function HeroCtas({ location, book = "/book" }: { location: string; book?
   );
 }
 
+// hero reviews widget, renders nothing if the field is empty
+export function HeroReviews() {
+  const widget = getIntegrations().heroReviewsWidget;
+  return widget.length > 0 ? <HeroReviewsWidget items={widget} /> : null;
+}
+
 export function PageHero({
   eyebrow,
   title,
@@ -88,6 +95,7 @@ export function PageHero({
   children,
   aside,
   hideCtas = false,
+  reviews = true,
 }: {
   eyebrow?: string;
   title: string;
@@ -96,6 +104,7 @@ export function PageHero({
   children?: React.ReactNode;
   aside?: React.ReactNode;
   hideCtas?: boolean;
+  reviews?: boolean;
 }) {
   return (
     <section className="on-brand relative overflow-hidden">
@@ -109,9 +118,12 @@ export function PageHero({
           <h1 className="max-w-3xl text-[clamp(2rem,1.3rem+3vw,3.4rem)]">{title}</h1>
           {intro && <p className="max-w-[62ch] text-lg text-on-brand-muted">{intro}</p>}
           {children ??
-            (!hideCtas && (
+            (hideCtas ? (
+              reviews && <HeroReviews />
+            ) : (
               <>
                 <HeroCtas location="page_hero" />
+                {reviews && <HeroReviews />}
                 <HeroChips />
               </>
             ))}
@@ -490,7 +502,7 @@ export function ReviewsSection({ limit = 3 }: { limit?: number }) {
   const widget = getIntegrations().reviewsWidget;
   if (!hasReviews()) return null;
   return (
-    <section className="section section-alt">
+    <section id="reviews" className="section section-alt scroll-mt-20">
       <div className="container-x">
         <div className="mb-6 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <SectionHeader eyebrow={t.eyebrow} title={t.title} intro={t.intro} />
