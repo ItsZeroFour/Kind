@@ -24,7 +24,7 @@ export function absoluteUrl(path = "/") {
 
 const MAX_TITLE = 65;
 
-// Page-level openGraph replaces the root one, so the file-based image has to be listed again.
+// page openGraph overrides root, so list the image again
 const OG_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Appliance repair in Hillsboro & Beaverton, OR" };
 
 export function pageMetadata({ title, description, path, absoluteTitle, noindex }: PageMeta): Metadata {

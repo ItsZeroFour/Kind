@@ -2,11 +2,8 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { defaults } from "@/content/model";
 
-/**
- * Admin-managed 301 redirects (Integrations → Redirects), read by the proxy on every page request.
- * The proxy cannot use the server-only store, so it keeps its own read-only connection and re-reads
- * the list only when the database changes.
- */
+// 301s from admin. proxy can't import the store, so it has its own
+// readonly connection and reloads only when data_version changes
 type Rule = { from: string; to: string };
 
 const norm = (p: string) => {
@@ -34,13 +31,12 @@ function rules() {
     cache = { version, map };
     return map;
   } catch {
-    // No database yet (fresh install) or it is busy: the default rules still apply.
+    // no db yet / busy - defaults only
     db = undefined;
     return cache?.map ?? fallback;
   }
 }
 
-/** The target for an old address, or null. Query strings (UTM tags) carry over. */
 export function findRedirect(pathname: string, search: string) {
   const to = rules().get(norm(pathname));
   if (!to || norm(to) === norm(pathname)) return null;

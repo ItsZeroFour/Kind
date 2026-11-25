@@ -1,6 +1,5 @@
 import type { Attribution, Touch } from "./tracking";
 
-/** Human-readable “which form” for a lead, from the form id and the page it was sent from. */
 export function describeForm(formId = "", pageUrl = "") {
   let from = "";
   try {
@@ -32,7 +31,6 @@ function host(url: string) {
   }
 }
 
-/** Where a visit came from, in words: ad network, UTM tags, organic search, a link, or a direct visit. */
 export function describeTouch(t: Touch | undefined) {
   if (!t) return null;
   const campaign = t.utm_campaign ? ` · campaign “${t.utm_campaign}”` : "";
@@ -55,7 +53,7 @@ export function describeSource(attribution: unknown) {
   return describeTouch(a.last) ?? describeTouch(a.first) ?? "Not recorded";
 }
 
-/** The UTM tags and click ids of the visit that led to the lead (last touch, falling back to the first; or the first visit first). */
+// last touch, falls back to first touch
 export function campaignTags(attribution: unknown, prefer: "first" | "last" = "last") {
   const a = (attribution ?? {}) as Attribution;
   const t = prefer === "first" ? (a.first ?? a.last) : (a.last ?? a.first);

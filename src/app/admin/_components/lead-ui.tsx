@@ -23,7 +23,6 @@ export function StatusBadge({ status }: { status: LeadStatus }) {
 
 export const crmLabel = { delivered: "In CRM", pending: "CRM: retrying", failed: "Not in CRM" } as const;
 
-/** Delivery to the CRM: quiet when delivered, loud when it failed. */
 export function CrmBadge({ crm }: { crm: keyof typeof crmLabel | null }) {
   if (!crm) return null;
   const cls = { delivered: "bg-ok/12 text-ok", pending: "bg-star/20 text-ink", failed: "bg-cta/12 text-cta" }[crm];

@@ -22,7 +22,7 @@ export type MediaItem = {
 };
 
 export async function saveUpload(input: Buffer, originalName: string): Promise<MediaItem> {
-  // Pure-JS decoding (no native/WASM code): the VPS CPU lacks SSE4/WASM SIMD. EXIF orientation is applied on read.
+  // pure js on purpose - VPS cpu has no SSE4 / wasm simd
   let img: Awaited<ReturnType<typeof Jimp.fromBuffer>>;
   try {
     img = await Jimp.fromBuffer(input);
@@ -32,7 +32,7 @@ export async function saveUpload(input: Buffer, originalName: string): Promise<M
   const scale = Math.min(1, MAX_SIDE / img.width, MAX_SIDE / img.height);
   if (scale < 1) img.resize({ w: Math.round(img.width * scale), h: Math.round(img.height * scale) });
 
-  // jimp has no WebP encoder: keep transparency as PNG, everything else becomes JPEG.
+  // no webp encoder in jimp -> png if transparent, else jpeg
   const { data: px } = img.bitmap;
   let hasAlpha = false;
   for (let i = 3; i < px.length; i += 4) if (px[i] < 255) { hasAlpha = true; break; }

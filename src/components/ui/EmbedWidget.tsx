@@ -3,10 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { EmbedEl } from "@/lib/embed";
 
-/**
- * Mounts an admin-provided widget (reviews, chat) on the client, in place, the way its embed code would.
- * `lazy` waits until the page has loaded and the browser is idle, so a chat bubble never slows the first screen.
- */
+// lazy = wait for load + idle (chat shouldn't slow down first paint)
 export function EmbedWidget({ items, className, lazy = false }: { items: EmbedEl[]; className?: string; lazy?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const key = JSON.stringify(items);

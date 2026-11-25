@@ -10,11 +10,10 @@ import { PhoneLink } from "@/components/ui/PhoneLink";
 import { ServiceIcon } from "@/components/ui/ServiceIcon";
 import { LeadForm } from "@/components/forms/LeadForm";
 import { ServicePrices } from "@/components/sections/pricing";
-import { CtaBand, FaqSection, HeroChips, HeroCtas, PageHero, PricingSection, Process, ReviewsSection } from "@/components/sections";
+import { CtaBand, FaqSection, HeroChips, HeroCtas, HeroReviews, PageHero, PricingSection, Process, ReviewsSection } from "@/components/sections";
 
 type Props = { params: Promise<{ slug: string }> };
 
-/** Page phrases: the repair template, with the maintenance template on top for maintenance pages. */
 const phrases = (service: Service) => {
   const site = getSite();
   const vars = { service: service.name, appliance: service.appliance };
@@ -65,6 +64,7 @@ export default async function ServicePage({ params }: Props) {
         ]}
       >
         <HeroCtas location={`service_${service.slug}`} book={maintenance ? "/book" : bookHref(service)} />
+        <HeroReviews />
         <HeroChips />
       </PageHero>
 

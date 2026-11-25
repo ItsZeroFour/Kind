@@ -28,10 +28,9 @@ export type LeadRow = {
   urgency: string | null;
   problem: string | null;
   note: string;
-  /** Form and traffic source in words */
   formLabel: string;
   channel: string;
-  /** Delivery to the CRM; null when no webhook was set when the lead came in */
+  // null if no webhook was set
   crm: CrmState | null;
 };
 
@@ -91,7 +90,7 @@ const toRow = (r: DbRow): LeadRow => {
   };
 };
 
-/** Saves a new lead; with `crm`, it is queued for delivery to the CRM. Throws on a repeated id (see isDuplicateLead). */
+// throws on duplicate id (see isDuplicateLead)
 export function saveLead(lead: Lead, crm?: { payload: string; nextAt: number; until: number } | null) {
   getDb()
     .prepare(
@@ -115,7 +114,6 @@ export function saveLead(lead: Lead, crm?: { payload: string; nextAt: number; un
     );
 }
 
-/** The same form submission came in twice (double click, retry after a lost answer). */
 export const isDuplicateLead = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: leads.id/.test(e.message);
 
 export function setLeadDelivery(id: string, delivery: Delivery) {

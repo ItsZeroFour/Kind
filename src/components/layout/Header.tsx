@@ -16,7 +16,6 @@ type Group = { label: string; href: string; links: { href: string; label: string
 export type NavData = {
   services: { slug: string; name: string; icon: ServiceIconName }[];
   areas: { slug: string; city: string }[];
-  /** The Reviews item is hidden until there are reviews */
   showReviews: boolean;
 };
 

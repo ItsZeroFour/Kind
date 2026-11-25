@@ -2,7 +2,7 @@ import { fill, getPrices, getSite } from "@/content/store";
 import { pageMetadata } from "@/lib/seo";
 import { priceListSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui/JsonLd";
-import { CtaBand, HeroCtas, PageHero } from "@/components/sections";
+import { CtaBand, HeroCtas, HeroReviews, PageHero } from "@/components/sections";
 import { DiagnosticsBlock, PriceList } from "@/components/sections/pricing";
 
 export function generateMetadata() {
@@ -28,6 +28,7 @@ export default function PricingPage() {
       <JsonLd data={priceListSchema(t.categories, "/pricing")} />
       <PageHero eyebrow={t.eyebrow} title={fill(t.heading, site)} intro={fill(t.intro, site)} crumbs={[{ name: "Pricing", path: "/pricing" }]}>
         <HeroCtas location="pricing_hero" />
+        <HeroReviews />
         <nav aria-label="Price list sections">
           <ul className="flex flex-wrap gap-2">
             {links.map((l) => (

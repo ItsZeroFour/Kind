@@ -5,7 +5,7 @@ import { campaignTags, describeTouch } from "./lead-labels";
 import { normalizeUSPhone, type Lead } from "./leads";
 import type { Attribution } from "./tracking";
 
-/** Leads go to the CRM (ProsBuddy) from the server only: each one starts paid texts and calls. */
+// server only - every lead triggers paid sms/calls
 
 export const CRM_RETRY_MS = 5 * 60 * 1000;
 export const CRM_RETRY_FOR_MS = 24 * 60 * 60 * 1000;
@@ -15,7 +15,7 @@ export type CrmState = "pending" | "delivered" | "failed";
 
 const formType = (formId = "") => (formId === "book_page" ? "book_full" : formId === "contact_page" ? "contact" : "callback_short");
 
-/** 2026-10-24T09:15:00-07:00: the moment in Oregon time, with its offset. */
+// e.g. 2026-10-24T09:15:00-07:00
 export function zonedIso(date: Date, timeZone = TIME_ZONE) {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
@@ -38,7 +38,7 @@ export function zonedIso(date: Date, timeZone = TIME_ZONE) {
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${offset < 0 ? "-" : "+"}${hhmm}`;
 }
 
-/** The JSON the CRM expects: every key always present, empty string when the form has no such field. */
+// all keys always present, "" if missing
 export function crmPayload(lead: Lead) {
   const [firstName = "", ...rest] = lead.name.trim().split(/\s+/);
   const visits = (lead.attribution ?? {}) as Attribution;
@@ -60,16 +60,16 @@ export function crmPayload(lead: Lead) {
     consent: lead.consent === true,
     consent_text: lead.consentText ?? "",
     submitted_at: zonedIso(new Date(lead.createdAt)),
-    // Extras for the AI agent and reports
+    // extras for the AI agent
     email: lead.email ?? "",
     lead_id: lead.id,
     form_name: lead.formLabel ?? "",
-    // The first visit, like the UTM tags above
+    // first visit
     source: describeTouch(visits.first) ?? describeTouch(visits.last) ?? "",
   };
 }
 
-/** null when the CRM took it (2xx), otherwise what went wrong. */
+// null = ok (2xx), otherwise error text
 async function post(url: string, body: string) {
   try {
     const res = await fetch(url, {
@@ -84,7 +84,7 @@ async function post(url: string, body: string) {
   }
 }
 
-/** For when the database is down: one attempt, nothing to retry from. */
+// fallback when db is down, single attempt
 export async function postToCrmOnce(lead: Lead) {
   const url = getCrmWebhook();
   if (!url) return;
@@ -92,11 +92,11 @@ export async function postToCrmOnce(lead: Lead) {
   if (error) console.error(`[crm] lead ${lead.id} not delivered and not saved: ${error}. Lead:`, JSON.stringify(lead));
 }
 
-/** One delivery attempt for a saved lead. true: delivered; false: failed (retried later); null: not due or not queued. */
+// true = delivered, false = failed (will retry), null = nothing to do
 export async function deliverToCrm(id: string) {
   const db = getDb();
   const now = Date.now();
-  // Claiming moves the next attempt forward first, so a parallel run (a retry tick, a second click) finds nothing due.
+  // claim first so parallel runs don't send twice
   const claimed = db
     .prepare("UPDATE leads SET crm_next_at = ?, crm_attempts = crm_attempts + 1 WHERE id = ? AND crm_state = 'pending' AND crm_next_at <= ?")
     .run(now + CRM_RETRY_MS, id, now);
@@ -124,14 +124,13 @@ export async function deliverToCrm(id: string) {
   return false;
 }
 
-/** The CRM state columns for a new lead: queued for delivery now, or not queued when no webhook is set. */
 export function crmQueue(lead: Lead) {
   if (!getCrmWebhook()) return null;
   const now = Date.now();
   return { payload: JSON.stringify(crmPayload(lead)), nextAt: now, until: now + CRM_RETRY_FOR_MS };
 }
 
-/** “Send to CRM again” in the admin: a fresh 24-hour window. The payload stays the one built when the lead came in. */
+// manual resend from admin, new 24h window, same payload
 export async function resendToCrm(id: string, lead: Lead) {
   const now = Date.now();
   getDb()
@@ -152,7 +151,7 @@ export async function retryDueCrm() {
 
 const g = globalThis as unknown as { __kindCrmTimer?: ReturnType<typeof setInterval> };
 
-/** Every minute, sends the leads whose next try is due. Started once per server process. */
+// retry loop, once per process
 export function startCrmRetries() {
   if (g.__kindCrmTimer) return;
   const tick = () => retryDueCrm().catch((e) => console.error("[crm] retry run failed:", e));

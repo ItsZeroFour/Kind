@@ -7,9 +7,8 @@ import { integrations as envIntegrations } from "@/config/site";
 import { defaultChatWidget, defaults, mergeDeep, parsePhone, type Content, type SectionKey } from "./model";
 import type { Service } from "./services";
 
-// One cache per process, like the database connection. Route handlers (/api/lead) and the admin are separate
-// bundles with their own copy of this module, and data_version only changes on writes from *other* connections,
-// so a per-module cache kept serving the settings from before an admin save (e.g. an empty CRM webhook).
+// global cache - route handlers and admin are separate bundles,
+// a per-module cache served stale settings after admin saves
 const g = globalThis as unknown as { __kindContent?: { version: number; content: Content } };
 
 function dataVersion() {
@@ -25,7 +24,7 @@ export function getContent(): Content {
   const content = Object.fromEntries(
     (Object.keys(defaults) as SectionKey[]).map((k) => [k, mergeDeep(defaults[k], saved[k])]),
   ) as Content;
-  // Services saved before the page type existed: the maintenance page is recognised by its address.
+  // old saved services have no pageType
   content.services = {
     ...content.services,
     items: content.services.items.map((s) => ({
@@ -104,12 +103,11 @@ export const getPrices = () => getContent().prices;
 
 export const isMaintenance = (s: Pick<Service, "pageType">) => s.pageType === "maintenance";
 
-/** Real reviews exist, either typed in Reviews or from an embedded widget. Until then the reviews block, page and menu item stay hidden. */
 export const hasReviews = () => getReviews().length > 0 || getIntegrations().reviewsWidget.length > 0;
 
 const fallbackPhone = parsePhone(defaults.business.phone)!;
 
-// The host answers on the bare domain and 301s www to it, so canonical URLs never use www.
+// no www in canonicals
 const siteUrl = () =>
   (process.env.NEXT_PUBLIC_SITE_URL || "https://kindappliancerepair.com").replace(/\/$/, "").replace("://www.", "://");
 
@@ -162,7 +160,6 @@ export function fill(text: string, site: Site = getSite(), extra: Record<string,
   return text.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
 }
 
-/** Maintenance kits from Prices (Kitchen Care Kit, …): their names are form choices like the appliances. */
 export function getKits() {
   return getPrices()
     .categories.filter((c) => c.segment === "maintenance")
@@ -197,7 +194,6 @@ export function getBookingForm() {
   };
 }
 
-/** The booking form appliance a service page preselects: the first one with the service's icon. */
 export function applianceFor(service: { icon: string }) {
   return getBookingForm().appliances.find((a) => a.icon === service.icon)?.name ?? "";
 }
@@ -207,12 +203,11 @@ export function bookHref(service?: { icon: string }) {
   return a ? `/book?appliance=${encodeURIComponent(a)}` : "/book";
 }
 
-/** “Book this service” on a maintenance kit: the form opens with the kit chosen, and the lead shows it came from a kit button. */
 export function kitHref(kit: string, from: string) {
   return `/book?appliance=${encodeURIComponent(kit.trim())}&from=${encodeURIComponent(`kit_${from}`)}`;
 }
 
-/** Admin values win; empty fields fall back to the server env. */
+// admin first, env as fallback
 export function getIntegrations() {
   const c = getContent().integrations;
   return {
@@ -231,12 +226,13 @@ export function getIntegrations() {
             (envIntegrations.chatWidgetSrc ? `<script src="${envIntegrations.chatWidgetSrc}"></script>` : defaultChatWidget),
         ),
     reviewsWidget: parseEmbed(c.reviewsWidget),
+    heroReviewsWidget: parseEmbed(c.heroReviewsWidget),
     redirects: c.redirects,
     leadEmail: c.leadEmail || process.env.LEAD_NOTIFY_EMAIL || "",
   };
 }
 
-/** Where leads go in the CRM. Server only: every POST there starts paid texts and calls. */
+// server only!
 export function getCrmWebhook() {
   const url = (getContent().integrations.crmWebhookUrl || process.env.LEAD_WEBHOOK_URL || "").split(",")[0].trim();
   return /^https?:\/\/\S+$/i.test(url) ? url : "";
