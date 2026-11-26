@@ -17,9 +17,7 @@ export function HeroReviewsWidget({ items }: { items: EmbedEl[] }) {
   };
 
   return (
-    // contain: inline-size - unformatted trustindex markup (delay load) is wider
-    // than the phone screen and was stretching the hero
-    <div className="hero-reviews w-full max-w-[600px] overflow-x-clip text-ink [contain:inline-size]" onClick={onClick}>
+    <div className="hero-reviews @container/hero-reviews w-full max-w-[600px] overflow-x-clip text-ink" onClick={onClick}>
       <EmbedWidget items={items} />
     </div>
   );

@@ -548,7 +548,7 @@ const integrations = {
   leadEmail: "",
   crmWebhookUrl: "",
   reviewsWidget: "",
-  heroReviewsWidget: "",
+  heroReviewsWidget: '<script defer async src="https://cdn.trustindex.io/loader.js?d038d90862953620d156ea49356"></script>',
   chatEnabled: true,
   chatWidget: defaultChatWidget,
   redirects: [
