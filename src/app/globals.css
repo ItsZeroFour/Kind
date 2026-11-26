@@ -286,3 +286,35 @@
 .admin h3 {
   letter-spacing: -0.02em;
 }
+
+/* Trustindex sends three columns until its delayed slider measures the hero. */
+.hero-reviews .ti-widget[data-layout-id="14"][data-delay-load="1"][data-review-target-width="300"] .ti-widget-container.ti-col-3 {
+  --review-width: 50%;
+
+  .ti-review-item {
+    flex-basis: var(--review-width);
+    max-width: var(--review-width);
+  }
+
+  @container hero-reviews (width < 36rem) {
+    --review-width: 100%;
+
+    .ti-header-content.ti-active {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .ti-header-rating-text:not(.ti-mobile) {
+      display: none;
+    }
+
+    .ti-header-rating-text.ti-mobile {
+      display: block;
+    }
+
+    .ti-header-write-btn-container {
+      margin: 6px 0 0;
+    }
+  }
+}
